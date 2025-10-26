@@ -13,15 +13,20 @@ def create_accounts(table_path: Path):
     accounts = AccountList.from_table(accounts_table)
 
     for account_id in accounts.get_ids():
-        try:
-            accounts[account_id].historical_data = (
-                pd.read_excel(table_path, sheet_name=account_id)
-                .pipe(normalize_column_names)
-            )
-        except KeyError:
-            raise ValueError(f"No data found for account_id='{account_id}'")
+        accounts[account_id].historical_data = read_historical_data(table_path, account_id)
 
     return accounts
+
+
+def read_historical_data(table_path: Path, account_id: str) -> pd.DataFrame:
+    try:
+        return (
+            pd.read_excel(table_path, sheet_name=account_id)
+            .pipe(normalize_column_names)
+        )
+    except KeyError:
+        raise ValueError(f"No data found for account_id='{account_id}'")
+
 
 def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -36,3 +41,5 @@ def to_snake_case(name: str) -> str:
     if re.match(r'^\d', name):
         name = f'col_{name}'
     return name
+
+

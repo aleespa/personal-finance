@@ -13,6 +13,7 @@ class Account:
     currency: Literal["MXN", "GBP"]
     status: Literal["Active", "Closed"]
     historical_data: Optional[pd.DataFrame] = None
+    balance: Optional[pd.DataFrame] = None
 
     @classmethod
     def from_row(cls, row):
@@ -25,9 +26,26 @@ class Account:
             status=row["status"],
         )
 
+    def calculate_balance(
+            self,
+            start_date: str,
+            end_date: str):
+        self.historical_data['date'] = pd.to_datetime(self.historical_data.date, dayfirst=True).dt.date
+        df_sorted = self.historical_data.sort_values(['date', 'transaction_number'], ascending=[True, False])
+        balance = df_sorted.drop_duplicates(subset='date', keep='first')
+        balance = balance.sort_values('date')[['date', 'balance']].reset_index(drop=True)
+        full_dates = pd.date_range(start=start_date, end=end_date)
+        balance = balance.set_index('date').reindex(full_dates)
+        balance.index.name = 'date'
+        self.balance = (balance
+                        .ffill()
+                        .reset_index()
+                        .rename(columns={'balance': self.account_id}, inplace=False))
+
 @dataclass
 class AccountList:
     accounts: list[Account]
+    merged_balances: Optional[pd.DataFrame] = None
 
     @classmethod
     def from_table(cls, table: pd.DataFrame):
@@ -35,6 +53,34 @@ class AccountList:
 
     def get_ids(self) -> list[str]:
         return [a.account_id for a in self.accounts]
+
+    def calculate_balances(
+            self,
+            start_date: str,
+            end_date: str):
+        for account in self.accounts:
+            account.calculate_balance(start_date, end_date)
+
+        self.merge_balances()
+
+    def merge_balances(self):
+        frames = []
+        for account in self.accounts:
+            balance = account.balance[['date', account.account_id]]
+            frames.append(balance.set_index('date'))
+
+        merged_balances = pd.concat(frames, axis=1, join='outer')
+        merged_balances.index = pd.to_datetime(merged_balances.index)
+        full_dates = pd.date_range(merged_balances.index.min(), merged_balances.index.max())
+        merged_balances = (
+            merged_balances.reindex(full_dates)
+            .rename_axis('date')
+            .fillna(0)
+            .ffill()
+        )
+        merged_balances['total'] = merged_balances.sum(axis=1)
+
+        self.merged_balances = merged_balances
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -50,5 +96,6 @@ class AccountList:
 
     def __len__(self):
         return len(self.accounts)
+
 
 
