@@ -10,7 +10,7 @@ from personal_finance.account import AccountList
 
 
 def plot_line_chart_account(accounts: AccountList, filepath: Path):
-    rolling_avg = accounts.merged_balances.rolling(window=14, min_periods=1).mean()
+    rolling_avg = accounts.merged_balances.rolling(window=7, min_periods=1).mean()
 
     for account_id in accounts.get_ids():
         fig, ax = plt.subplots(figsize=(8, 4), dpi=100)
@@ -103,3 +103,137 @@ def plot_line_chart_all(
     plt.tight_layout()
 
     plt.savefig(filepath / "Total balance.png", dpi=300)
+
+def plot_monthly_balance_bars(accounts, start_date, end_date, filepath: Path):
+    """
+    Plot a monthly bar chart of balances for each account between start_date and end_date.
+
+    Parameters
+    ----------
+    accounts : AccountList
+        Object containing .merged_balances (DataFrame with date index and one column per account)
+    start_date, end_date : datetime-like
+        Range of interest
+    filepath : Path
+        Directory where to save plots
+    """
+
+    # Ensure date index
+    df = accounts.merged_balances.copy()
+    df = df.loc[start_date:end_date]
+
+    # Compute month-end balances
+    monthly = df.resample('ME').last()
+
+    # Create a bar chart for each account
+    for col in monthly.columns:
+        balances = monthly[col]
+        colors = ['green' if val >= 0 else 'red' for val in balances]
+        fig, ax = plt.subplots(1,1, figsize=(10, 5), dpi=100)
+        ax.bar(balances.index, balances, width=20, zorder=1, color=colors)  # ~20 days wide bars
+
+        ax.set_xlabel("Month")
+        ax.set_ylabel("Balance")
+
+        ax.spines[['top', 'right']].set_visible(False)
+
+        formatter = mtick.FuncFormatter(lambda x, _: f"£{x / 1000:,.1f}k")
+        ax.yaxis.set_major_formatter(formatter)
+
+        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=6))  # every 3 months
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b\n%Y'))
+
+        ax.grid(axis='y', linestyle='--', alpha=0.3, zorder=0)
+        ax.axhline(0, color='gray', lw=1)
+
+        plt.tight_layout()
+        # Save figure
+        plt.savefig(filepath / f"{col}_Monthly_Balance.png", dpi=300)
+        plt.close()
+
+def plot_monthly_stacked_balance_by_bank(accounts, start_date, end_date, filepath: Path):
+    """
+    Plot a diverging stacked monthly bar chart of balances for all accounts (excluding 'total'),
+    with colors based on the bank each account belongs to.
+    Positive balances stack upward; negative balances stack downward.
+    """
+
+    df = accounts.merged_balances.copy().loc[start_date:end_date]
+
+    # Exclude the total column if present
+    if "total" in df.columns:
+        df = df.drop(columns="total")
+
+    # Resample to month-end (use .last() to get end-of-month balances)
+    monthly = df.resample("ME").last()
+
+    # Map each account_id to its bank
+    account_to_bank = {acc.account_id: acc.bank for acc in accounts.accounts}
+
+    # Get unique banks and assign distinct colors
+    unique_banks = list({acc.bank for acc in accounts.accounts if acc.bank})
+    cmap = plt.get_cmap("tab10")
+    bank_colors = {bank: cmap(i % 10) for i, bank in enumerate(unique_banks)}
+    account_colors = {acc.account_id: bank_colors.get(acc.bank, "gray") for acc in accounts.accounts}
+
+    # --- Plot setup ---
+    plt.figure(figsize=(14, 7), dpi=100)
+    bottom_pos = pd.Series(0, index=monthly.index)  # For positive stacks
+    bottom_neg = pd.Series(0, index=monthly.index)  # For negative stacks
+
+    for col in monthly.columns:
+        values = monthly[col].fillna(0)
+        color = account_colors.get(col, "gray")
+
+        # Split positive and negative parts
+        pos_values = values.clip(lower=0)
+        neg_values = values.clip(upper=0)
+
+        # Plot positives (above zero)
+        plt.bar(
+            monthly.index,
+            pos_values,
+            bottom=bottom_pos,
+            color=color,
+            width=20,
+            label=f"{col} ({account_to_bank.get(col, 'Unknown')})"
+        )
+        bottom_pos += pos_values
+
+        # Plot negatives (below zero)
+        plt.bar(
+            monthly.index,
+            neg_values,
+            bottom=bottom_neg,
+            color=color,
+            width=20
+        )
+        bottom_neg += neg_values
+
+    # --- Styling ---
+    plt.title("Monthly Balances by Account (Positive/Negative Stacked by Bank)", fontsize=14)
+    plt.xlabel("Month")
+    plt.ylabel("Balance")
+
+    ax = plt.gca()
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Format y-axis as £xk
+    formatter = mtick.FuncFormatter(lambda x, _: f"£{x / 1000:,.0f}k")
+    ax.yaxis.set_major_formatter(formatter)
+
+    # Format x-axis (every 3 months)
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b\n%Y"))
+
+    # Grid and zero line
+    ax.grid(axis="y", linestyle="--", alpha=0.3)
+    ax.axhline(0, color="gray", lw=1)
+
+    # Legend (grouped by account & bank)
+    plt.legend(title="Account (Bank)", bbox_to_anchor=(1.05, 1), loc="upper left")
+
+    plt.tight_layout()
+    plt.savefig(filepath / "Monthly_Stacked_Balances_by_Bank.png", dpi=300)
+    plt.close()
