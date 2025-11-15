@@ -1,8 +1,10 @@
 import os
+from datetime import datetime
 from pathlib import Path
 
 import matplotlib.dates as mdates
 import matplotlib.ticker as mtick
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -227,13 +229,66 @@ def plot_monthly_stacked_balance_by_bank(accounts, start_date, end_date, filepat
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b\n%Y"))
 
-    # Grid and zero line
     ax.grid(axis="y", linestyle="--", alpha=0.3)
     ax.axhline(0, color="gray", lw=1)
-
-    # Legend (grouped by account & bank)
     plt.legend(title="Account (Bank)", bbox_to_anchor=(1.05, 1), loc="upper left")
 
     plt.tight_layout()
     plt.savefig(filepath / "Monthly_Stacked_Balances_by_Bank.png", dpi=300)
     plt.close()
+
+def plot_monthly_diff(accounts: AccountList,  filepath: Path):
+    monthly_df = monthly_balance_difference(accounts.merged_balances)
+    monthly_df = monthly_df.sort_index().dropna(subset=['monthly_diff'])
+
+    years = monthly_df.index.get_level_values("year").unique()
+    for year in years:
+        yearly = monthly_df.xs(year, level="year")
+        y = yearly["monthly_diff"].to_numpy()
+        dates = [
+            pd.Timestamp(year=year, month=mo, day=15)
+            for mo in yearly.index
+        ]
+        colors = ['tab:green' if v >= 0 else 'tab:red' for v in y]
+        fig, ax = plt.subplots(figsize=(14, 6))
+        width = pd.Timedelta(days=20)
+        ax.bar(dates, y, width=width, color=colors, align='center', zorder=1)
+        ax.set_xlabel("Month")
+        ax.set_ylabel("Balance Difference")
+        fig.autofmt_xdate()
+        ax.grid(True, axis="y", linestyle="--", alpha=0.3, zorder=0)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.axhline(0, color="black", linewidth=0.8, linestyle="--", alpha=0.6)
+        formatter = mtick.FuncFormatter(lambda x, _: f"£{x / 1000:,.1f}k")
+        ax.yaxis.set_major_formatter(formatter)
+        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%b\n%Y"))
+        ax.set_xlim(pd.Timestamp(f"{year}-01-01"), pd.Timestamp(f"{year}-12-31"))
+        ax.set_ylim(min(-1_200, y.min()-100), max(5_000, y.max()+100))
+        filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(filepath / f"Monthly diff {year}", bbox_inches="tight")
+        plt.close(fig)
+
+def monthly_balance_difference(df):
+    """
+    End-of-month balances + continuous month-to-month differences.
+    January difference is computed from previous December.
+    """
+    df = df.copy()
+    df.index = pd.to_datetime(df.index)
+
+    # Extract year & month
+    df['year'] = df.index.year
+    df['month'] = df.index.month
+
+    # End-of-month value
+    monthly = df.groupby(['year', 'month'])['total'].last()
+
+    # Continuous difference with no reset at January
+    monthly_diff = monthly.diff()
+
+    return pd.DataFrame({
+        'monthly_total': monthly,
+        'monthly_diff': monthly_diff
+    })
