@@ -23,6 +23,7 @@ def read_historical_data(table_path: Path, account_id: str) -> pd.DataFrame:
         return (
             pd.read_excel(table_path, sheet_name=account_id)
             .pipe(normalize_column_names)
+            .assign(date=lambda x: pd.to_datetime(x.date, dayfirst=True))
         )
     except KeyError:
         raise ValueError(f"No data found for account_id='{account_id}'")

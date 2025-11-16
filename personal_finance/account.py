@@ -57,8 +57,12 @@ class AccountList:
 
     def calculate_balances(
             self,
-            start_date: str,
-            end_date: str):
+            start_date: Optional[str] = None,
+            end_date: Optional[str] = None):
+        if start_date is None:
+            start_date = min([min(acc.historical_data.date.to_list()) for acc in self.accounts])
+        if end_date is None:
+            end_date = max([max(acc.historical_data.date.to_list()) for acc in self.accounts])
         for account in self.accounts:
             account.calculate_balance(start_date, end_date)
 
