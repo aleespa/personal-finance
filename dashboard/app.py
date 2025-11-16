@@ -42,6 +42,31 @@ if st.session_state.accounts:
     accounts.calculate_balances()
     st.session_state.year_data = prepare_monthly_diff(accounts)
 
+    st.subheader("Summary")
+    latest = accounts.merged_balances.iloc[-1, :-1]
+    active_acc = len([accounts for account in accounts if account.status == "Active"])
+    closed_acc = len([accounts for account in accounts if account.status != "Active"])
+    total_balance = latest.sum()
+    total_credit = latest[latest < 0].sum()
+    positive_accounts = (latest > 0).sum()
+    negative_accounts = (latest < 0).sum()
+
+    one_year_ago_date = accounts.merged_balances.index[-1] - pd.DateOffset(years=1)
+    past_idx = accounts.merged_balances.index.get_indexer([one_year_ago_date], method="nearest")[0]
+    balance_1yr_ago = accounts.merged_balances.iloc[past_idx].sum()
+    delta_balance = total_balance - balance_1yr_ago
+
+    number_transactions = sum(len(acc.historical_data) for acc in accounts)
+
+    colA, colB, colC, colD = st.columns(4)
+    colA.metric("Total Balance", f"£{total_balance:,.0f}", delta=f"{delta_balance:,.0f}", )
+    colA.metric("Total Credit", f"£{-total_credit:,.0f}")
+    colB.metric("Active Accounts", active_acc)
+    colB.metric("Closed Accounts", closed_acc)
+    colC.metric("Debit Accounts", positive_accounts)
+    colC.metric("Credit Accounts", negative_accounts)
+    colD.metric("Number of transactions", f"{number_transactions:,.0f}")
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
