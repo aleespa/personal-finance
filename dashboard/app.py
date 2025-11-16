@@ -36,7 +36,6 @@ if "year_data" not in st.session_state:
 if uploaded_file:
     accounts = create_accounts(uploaded_file)
     st.session_state.accounts = accounts
-    st.success("Workbook loaded!")
 
 if st.session_state.accounts:
     accounts = st.session_state.accounts
@@ -48,9 +47,7 @@ if st.session_state.accounts:
     with col1:
         if st.session_state.year_data:
             year_data = st.session_state.year_data
-            years = sorted(year_data.keys())
-
-            # The selectbox will trigger a rerun of the script
+            years = sorted(year_data.keys(), reverse=True)
             year = st.selectbox("Select a year", years)
 
             df = year_data[year]
