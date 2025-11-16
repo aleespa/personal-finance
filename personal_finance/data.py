@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from personal_finance.account import Account, AccountList
+from personal_finance.account import AccountList
 
 
 def create_accounts(table_path: Path):
@@ -43,3 +43,21 @@ def to_snake_case(name: str) -> str:
     return name
 
 
+def load_workbook(file):
+    """
+    Load an Excel workbook that contains:
+    - A sheet 'accounts' with account metadata
+    - A sheet 'transactions' with historical data
+    """
+    xls = pd.ExcelFile(file)
+
+    accounts_df = pd.read_excel(xls, "Accounts").pipe(normalize_column_names)
+    tx_df       = pd.read_excel(xls, "Transactions").pipe(normalize_column_names)
+
+    account_list = AccountList.from_table(accounts_df)
+
+    # Attach transaction data to each Account
+    for acc in account_list.accounts:
+        acc.historical_data = tx_df[tx_df["account_id"] == acc.account_id].copy()
+
+    return account_list
