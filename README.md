@@ -26,30 +26,9 @@ cd personal-finance
 ### 2. Create a virtual environment using uv
 
 ```bash
-uv create .venv
+uv sync
 ```
 
-Activate the environment:
-
-* Windows (PowerShell):
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-* macOS / Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
-uv install -r requirements.txt
-```
-
----
 
 ## Data Format
 
