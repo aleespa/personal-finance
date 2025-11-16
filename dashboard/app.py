@@ -1,14 +1,24 @@
 import sys
 from pathlib import Path
 
+import pandas as pd
+
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
 import streamlit as st
 
-from personal_finance.figures import (
+from personal_finance.figures.monthly_bars import (
     plot_monthly_diff_plotly, prepare_monthly_diff
 )
+from personal_finance.figures.account_line import (
+    plot_line_chart_account_plotly
+)
+
+from personal_finance.figures.balance_pie_chart import plot_account_balance_pie
+from personal_finance.figures.stacked_accounts import plot_monthly_stacked_balance_by_bank_plotly
+
 from personal_finance.data import create_accounts
 
 st.set_page_config(page_title="Finance Dashboard", layout="wide")
@@ -33,14 +43,45 @@ if st.session_state.accounts:
     accounts.calculate_balances()
     st.session_state.year_data = prepare_monthly_diff(accounts)
 
-    if st.session_state.year_data:
-        year_data = st.session_state.year_data
-        years = sorted(year_data.keys())
+    col1, col2, col3 = st.columns(3)
 
-        # The selectbox will trigger a rerun of the script
-        year = st.selectbox("Select a year", years)
+    with col1:
+        if st.session_state.year_data:
+            year_data = st.session_state.year_data
+            years = sorted(year_data.keys())
 
-        df = year_data[year]
-        fig = plot_monthly_diff_plotly(year, df)
+            # The selectbox will trigger a rerun of the script
+            year = st.selectbox("Select a year", years)
 
+            df = year_data[year]
+            fig = plot_monthly_diff_plotly(year, df)
+            st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        account_ids = sorted(accounts.get_ids())
+        selected_account = st.selectbox("Select an account", account_ids)
+        fig = plot_line_chart_account_plotly(accounts, selected_account)
         st.plotly_chart(fig, use_container_width=True)
+    with col3:
+        monthly_dates = sorted(accounts.merged_balances.resample("ME").last().index.date, reverse=True)
+        selected_date = st.selectbox("Select a month", monthly_dates)
+
+        fig = plot_account_balance_pie(accounts, selected_date)
+        st.plotly_chart(fig, use_container_width=True)
+
+    min_date = pd.to_datetime("2020-01-01").date()
+    max_date = pd.to_datetime("today").date()
+
+    # Default values as datetime.date
+    default_start = min_date
+    default_end = max_date
+
+    start_date, end_date = st.slider(
+        "Select date range",
+        min_value=min_date,
+        max_value=max_date,
+        value=(default_start, default_end),
+        format="YYYY-MM-DD"
+    )
+    fig = plot_monthly_stacked_balance_by_bank_plotly(accounts, start_date, end_date)
+    st.plotly_chart(fig, use_container_width=True)
