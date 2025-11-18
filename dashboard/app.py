@@ -107,3 +107,5 @@ if st.session_state.accounts:
     )
     fig = plot_monthly_stacked_balance_by_bank_plotly(accounts, start_date, end_date)
     st.plotly_chart(fig, use_container_width=True)
+
+    st.table(accounts.merged_balances.tail(10))
