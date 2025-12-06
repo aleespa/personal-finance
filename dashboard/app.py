@@ -3,21 +3,14 @@ from pathlib import Path
 
 import pandas as pd
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
 import streamlit as st
 
 from personal_finance.figures.monthly_bars import (
-    plot_monthly_diff_plotly, prepare_monthly_diff
+    prepare_monthly_diff
 )
-from personal_finance.figures.account_line import (
-    plot_line_chart_account_plotly
-)
-
-from personal_finance.figures.balance_pie_chart import plot_account_balance_pie
-from personal_finance.figures.stacked_accounts import plot_monthly_stacked_balance_by_bank_plotly
 
 from personal_finance.data import create_accounts
 
@@ -69,37 +62,22 @@ if st.session_state.accounts:
 
     col1, col2, col3 = st.columns(3)
 
-    with col1:
-        @st.fragment
-        def show_monthly_diff():
-            if st.session_state.year_data:
-                year_data = st.session_state.year_data
-                years = sorted(year_data.keys(), reverse=True)
-                year = st.selectbox("Select a year", years)
+    from dashboard.fragments import (
+        show_monthly_diff,
+        show_account_line,
+        show_balance_pie,
+        show_stacked_barchart,
+        show_transactions_fragment
+    )
 
-                df = year_data[year]
-                fig = plot_monthly_diff_plotly(year, df)
-                st.plotly_chart(fig, use_container_width=True)
-        show_monthly_diff()
+    with col1:
+        show_monthly_diff(st.session_state.year_data)
 
     with col2:
-        @st.fragment
-        def show_account_line():
-            account_ids = sorted(accounts.get_ids())
-            selected_account = st.selectbox("Select an account", account_ids)
-            fig = plot_line_chart_account_plotly(accounts, selected_account)
-            st.plotly_chart(fig, use_container_width=True)
-        show_account_line()
+        show_account_line(accounts)
 
     with col3:
-        @st.fragment
-        def show_balance_pie():
-            monthly_dates = sorted(accounts.merged_balances.resample("ME").last().index.date, reverse=True)
-            selected_date = st.selectbox("Select a month", monthly_dates)
-
-            fig = plot_account_balance_pie(accounts, selected_date)
-            st.plotly_chart(fig, use_container_width=True)
-        show_balance_pie()
+        show_balance_pie(accounts)
 
     min_date = pd.to_datetime("2020-01-01").date()
     max_date = pd.to_datetime("today").date()
@@ -108,27 +86,6 @@ if st.session_state.accounts:
     default_start = min_date
     default_end = max_date
 
-    @st.fragment
-    def show_stacked_barchart():
-        start_date, end_date = st.slider(
-            "Select date range",
-            min_value=min_date,
-            max_value=max_date,
-            value=(default_start, default_end),
-            format="YYYY-MM-DD"
-        )
-        fig = plot_monthly_stacked_balance_by_bank_plotly(accounts, start_date, end_date)
-        st.plotly_chart(fig, use_container_width=True)
-    show_stacked_barchart()
+    show_stacked_barchart(accounts, min_date, max_date, default_start, default_end)
 
-    @st.fragment
-    def show_transactions_fragment():
-        active_cl = [account.account_id for account in accounts if account.status == "Active"]
-        col1, col2, col3 = st.columns(3)
-        date_range = col1.date_input("Date Range", [min_date, max_date])
-        selected_accounts = col2.multiselect("Accounts", active_cl, default=active_cl)
-        
-        if len(date_range) == 2:
-            st.dataframe(accounts.merged_balances.loc[date_range[0]:date_range[1], selected_accounts].sort_index(ascending=False))
-
-    show_transactions_fragment()
+    show_transactions_fragment(accounts, min_date, max_date)
