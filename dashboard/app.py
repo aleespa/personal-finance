@@ -1,8 +1,12 @@
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
+
 import pandas as pd
 import streamlit as st
+
 
 from personal_finance.figures.monthly_bars import prepare_monthly_diff
 
@@ -13,13 +17,13 @@ from dashboard.fragments import (
     show_account_line,
     show_balance_pie,
     show_stacked_barchart,
+    show_stacked_barchart,
     show_transactions_fragment,
     show_summary,
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.append(str(ROOT))
+
 
 
 st.set_page_config(page_title="Finance Dashboard", layout="wide")
