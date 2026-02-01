@@ -1,18 +1,30 @@
 import sys
 from pathlib import Path
 
-import pandas as pd
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
+import pandas as pd
 import streamlit as st
 
-from personal_finance.figures.monthly_bars import (
-    prepare_monthly_diff
-)
+
+from personal_finance.figures.monthly_bars import prepare_monthly_diff
 
 from personal_finance.data import create_accounts
+
+from dashboard.fragments import (
+    show_monthly_diff,
+    show_account_line,
+    show_balance_pie,
+    show_stacked_barchart,
+    show_stacked_barchart,
+    show_transactions_fragment,
+    show_summary,
+)
+
+
+
+
 
 st.set_page_config(page_title="Finance Dashboard", layout="wide")
 st.title("📊 Personal Finance Dashboard")
@@ -35,41 +47,9 @@ if st.session_state.accounts:
     accounts.calculate_balances()
     st.session_state.year_data = prepare_monthly_diff(accounts)
 
-    st.subheader("Summary")
-    latest = accounts.merged_balances.iloc[-1, :-1]
-    active_acc = len([accounts for account in accounts if account.status == "Active"])
-    closed_acc = len([accounts for account in accounts if account.status != "Active"])
-    total_balance = latest.sum()
-    total_credit = latest[latest < 0].sum()
-    positive_accounts = (latest > 0).sum()
-    negative_accounts = (latest < 0).sum()
-
-    one_year_ago_date = accounts.merged_balances.index[-1] - pd.DateOffset(years=1)
-    past_idx = accounts.merged_balances.index.get_indexer([one_year_ago_date], method="nearest")[0]
-    balance_1yr_ago = accounts.merged_balances.iloc[past_idx].sum()
-    delta_balance = total_balance - balance_1yr_ago
-
-    number_transactions = sum(len(acc.historical_data) for acc in accounts)
-
-    colA, colB, colC, colD = st.columns(4)
-    colA.metric("Total Balance", f"£{total_balance:,.0f}", delta=f"{delta_balance:,.0f}", )
-    colA.metric("Total Credit", f"£{-total_credit:,.0f}")
-    colB.metric("Active Accounts", active_acc)
-    colB.metric("Closed Accounts", closed_acc)
-    colC.metric("Debit Accounts", positive_accounts)
-    colC.metric("Credit Accounts", negative_accounts)
-    colD.metric("Number of transactions", f"{number_transactions:,.0f}")
+    show_summary(accounts)
 
     col1, col2, col3 = st.columns(3)
-
-    from dashboard.fragments import (
-        show_monthly_diff,
-        show_account_line,
-        show_balance_pie,
-        show_stacked_barchart,
-        show_transactions_fragment
-    )
-
     with col1:
         show_monthly_diff(st.session_state.year_data)
 
