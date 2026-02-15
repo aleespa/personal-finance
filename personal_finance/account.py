@@ -49,8 +49,20 @@ class AccountList:
     merged_balances: Optional[pd.DataFrame] = None
 
     @classmethod
-    def from_table(cls, table: pd.DataFrame):
-        return cls([Account.from_row(row) for _, row in table.iterrows()])
+    def from_tables(cls, accounts: pd.DataFrame | None = None, holdings: pd.DataFrame | None = None):
+        if accounts is not  None:
+            accounts = [Account.from_row(row) for _, row in accounts.iterrows()]
+        if holdings is not None:
+            holdings = Account(
+                account_id="Holdings",
+                bank=None,
+                account_number=None,
+                type="Investment",
+                currency="GBP",
+                status="Active",
+            )
+            return cls(accounts + [holdings])
+        return cls(accounts)
 
     def get_ids(self) -> list[str]:
         return [a.account_id for a in self.accounts]

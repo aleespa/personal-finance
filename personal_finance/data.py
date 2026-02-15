@@ -4,16 +4,26 @@ from pathlib import Path
 import pandas as pd
 
 from personal_finance.account import AccountList
+from personal_finance.holdings import get_historical_holdings
 
 
 def create_accounts(table_path: Path):
-    accounts_table = (pd.read_excel(table_path, sheet_name="Accounts")
-                      .pipe(normalize_column_names))
+    data = pd.read_excel(table_path, sheet_name=None)
+    if "Accounts" in data:
+        accounts_table = data["Accounts"].pipe(normalize_column_names)
+    else:
+        accounts_table = None
+    if "Holdings" in data:
+        holdings = data["Holdings"].pipe(normalize_column_names)
+    else:
+        holdings = None
 
-    accounts = AccountList.from_table(accounts_table)
+    accounts = AccountList.from_tables(accounts_table, holdings)
 
     for account_id in accounts.get_ids():
         accounts[account_id].historical_data = read_historical_data(table_path, account_id)
+
+    accounts["Holdings"].historical_data = get_historical_holdings(holdings).pipe(normalize_column_names)
 
     return accounts
 
@@ -43,22 +53,3 @@ def to_snake_case(name: str) -> str:
         name = f'col_{name}'
     return name
 
-
-def load_workbook(file):
-    """
-    Load an Excel workbook that contains:
-    - A sheet 'accounts' with account metadata
-    - A sheet 'transactions' with historical data
-    """
-    xls = pd.ExcelFile(file)
-
-    accounts_df = pd.read_excel(xls, "Accounts").pipe(normalize_column_names)
-    tx_df       = pd.read_excel(xls, "Transactions").pipe(normalize_column_names)
-
-    account_list = AccountList.from_table(accounts_df)
-
-    # Attach transaction data to each Account
-    for acc in account_list.accounts:
-        acc.historical_data = tx_df[tx_df["account_id"] == acc.account_id].copy()
-
-    return account_list
