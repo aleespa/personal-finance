@@ -10,16 +10,17 @@ import streamlit as st
 
 from personal_finance.figures.monthly_bars import prepare_monthly_diff
 
-from personal_finance.data import create_accounts
+from personal_finance.data import create_accounts, create_holdings
 
 from dashboard.fragments import (
     show_monthly_diff,
     show_account_line,
     show_balance_pie,
     show_stacked_barchart,
-    show_stacked_barchart,
+    show_holdings_stacked,
     show_transactions_fragment,
     show_summary,
+    show_holdings_analysis,
 )
 
 
@@ -40,6 +41,7 @@ if "year_data" not in st.session_state:
 
 if uploaded_file:
     accounts = create_accounts(uploaded_file)
+    holdings = create_holdings(uploaded_file)
     st.session_state.accounts = accounts
 
 if st.session_state.accounts:
@@ -68,4 +70,8 @@ if st.session_state.accounts:
 
     show_stacked_barchart(accounts, min_date, max_date, default_start, default_end)
 
+    show_holdings_stacked(accounts, min_date, max_date, default_start, default_end)
+
     show_transactions_fragment(accounts, min_date, max_date)
+
+    show_holdings_analysis(holdings)

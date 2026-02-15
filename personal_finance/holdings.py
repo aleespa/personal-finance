@@ -15,6 +15,7 @@ def get_historical_holdings(
     date_range = pd.date_range(start_date, end_date, freq="D")
     tickers = table["yf_name"].unique().tolist()
     ticker_currencies = {t: yf.Ticker(t).fast_info["currency"] for t in tickers}
+    ticker_names = table.set_index("yf_name")["full_name"].to_dict()
 
     # Download and prepare price data
     price_data = (
@@ -68,9 +69,10 @@ def get_historical_holdings(
     return (
         holdings.mul(price_data)
         .assign(**{
-            "Balance": lambda x: x.sum(axis=1),
-            "Transaction number": np.arange(1, 1+len(holdings))
+            "balance": lambda x: x.sum(axis=1),
+            "transaction_number": np.arange(1, 1+len(holdings))
         })
+        .rename(columns=ticker_names)
         .rename_axis("date")
         .reset_index()
     )

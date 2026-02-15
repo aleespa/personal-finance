@@ -31,7 +31,7 @@ class Account:
             self,
             start_date: str,
             end_date: str):
-        self.historical_data['date'] = pd.to_datetime(self.historical_data.date, dayfirst=True).dt.date
+        self.historical_data['date'] = pd.to_datetime(self.historical_data.date, dayfirst=False).dt.date
         df_sorted = self.historical_data.sort_values(['date', 'transaction_number'], ascending=[True, False])
         balance = df_sorted.drop_duplicates(subset='date', keep='first')
         balance = balance.sort_values('date')[['date', 'balance']].reset_index(drop=True)
