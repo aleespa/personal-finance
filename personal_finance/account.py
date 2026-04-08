@@ -67,6 +67,9 @@ class AccountList:
     def get_ids(self) -> list[str]:
         return [a.account_id for a in self.accounts]
 
+    def get_account(self, account_id: str) -> Account:
+        return self.accounts[self.get_ids().index(account_id)]
+
     def calculate_balances(
             self,
             start_date: Optional[str] = None,

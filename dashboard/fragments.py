@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from personal_finance.account import Account, AccountList
 from personal_finance.figures.account_line import plot_line_chart_account_plotly
 from personal_finance.figures.balance_pie_chart import plot_account_balance_pie
 from personal_finance.figures.monthly_bars import plot_monthly_diff_plotly
@@ -87,7 +88,7 @@ def show_stacked_barchart(accounts, min_date, max_date, default_start, default_e
 
 
 @st.fragment
-def show_transactions_fragment(accounts, min_date, max_date):
+def show_transactions_fragment(accounts: AccountList, min_date, max_date):
     active_cl = [account.account_id for account in accounts if account.status == "Active"]
     col1, col2, col3 = st.columns(3)
     date_range = col1.date_input("Date Range", [min_date, max_date])
@@ -97,6 +98,7 @@ def show_transactions_fragment(accounts, min_date, max_date):
         st.dataframe(accounts.merged_balances.loc[
             date_range[0]:date_range[1], selected_accounts].sort_index(
             ascending=False))
+
 
 
 @st.fragment
@@ -144,7 +146,7 @@ def show_holdings_analysis(holdings):
 
     names_dict = df.set_index(yf_name_col)[full_name_col].to_dict()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns([1,3])
 
     with col1:
         st.write("### Covariance Heatmap")
@@ -162,7 +164,4 @@ def show_holdings_analysis(holdings):
         else:
             st.write("Could not load evolution data.")
 
-    with col3:
-        st.write("### Stats")
-        # Left unimplemented as requested
-        st.write("Summary statistics (to be implemented)")
+

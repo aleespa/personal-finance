@@ -14,6 +14,7 @@ dependencies = [
     "streamlit-extras>=0.7.8",
     "plotly==6.5.2",
     "yfinance>=1.1.0",
+    "python-dotenv>=1.2.2",
 ]
 [tool.setuptools.packages.find]
 include = ["personal_finance"]
