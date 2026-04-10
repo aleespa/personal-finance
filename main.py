@@ -8,7 +8,7 @@ from personal_finance.data import normalize_column_names
 
 
 def main():
-    table = (pd.read_excel(r"data\demo_data.xlsx", sheet_name="Holdings")
+    table = (pd.read_excel(r"data\demo_data.xlsx", sheet_name="Holdings", engine='calamine')
                 .pipe(normalize_column_names))
     r = holdings.get_historical_holdings(table)
     r.to_clipboard(excel=True)

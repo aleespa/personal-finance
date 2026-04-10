@@ -8,14 +8,14 @@ from personal_finance.holdings import get_historical_holdings
 
 
 def create_holdings(table_path: Path):
-    data = pd.read_excel(table_path, sheet_name=None)
+    data = pd.read_excel(table_path, sheet_name=None, engine='calamine')
     if "Holdings" in data:
         holdings = data["Holdings"].pipe(normalize_column_names)
         return holdings
     return None
 
 def create_accounts(table_path: Path):
-    data = pd.read_excel(table_path, sheet_name=None)
+    data = pd.read_excel(table_path, sheet_name=None, engine='calamine')
     accounts_dict = {}
 
     if "Accounts" in data:
@@ -52,7 +52,7 @@ def create_accounts(table_path: Path):
 def read_historical_data(table_path: Path, account_id: str) -> pd.DataFrame:
     try:
         return (
-            pd.read_excel(table_path, sheet_name=account_id)
+            pd.read_excel(table_path, sheet_name=account_id, engine='calamine')
             .pipe(normalize_column_names)
             .assign(date=lambda x: pd.to_datetime(x.date, dayfirst=True))
         )
