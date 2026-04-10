@@ -1,8 +1,9 @@
-from dataclasses import dataclass
+import pandera.pandas as pa
+from collections import UserDict
+from dataclasses import dataclass, field
 from typing import Optional, Literal
 
 import pandas as pd
-
 
 
 @dataclass
@@ -13,82 +14,72 @@ class Account:
     type: Literal["Current", "Savings", "Credit Card", "Loan", "Investment"]
     currency: Literal["MXN", "GBP"]
     status: Literal["Active", "Closed"]
-    historical_data: Optional[pd.DataFrame] = None
+    transactions: pd.DataFrame
     balance: Optional[pd.DataFrame] = None
 
-    @classmethod
-    def from_row(cls, row):
-        return cls(
-            account_id=row["account_id"],
-            bank=row["bank"],
-            account_number=row["account_number"],
-            type=row["type"],
-            currency=row["currency"],
-            status=row["status"],
+    def __post_init__(self):
+        schema = pa.DataFrameSchema(
+            {
+                "date": pa.Column(pa.DateTime),
+                "balance": pa.Column(float, coerce=True, nullable=True),
+                "transaction_number": pa.Column(float, coerce=True, nullable=True),
+            },
+            strict=False,
         )
+        self.transactions = schema.validate(self.transactions)
 
-    def calculate_balance(
-            self,
-            start_date: str,
-            end_date: str):
-        self.historical_data['date'] = pd.to_datetime(self.historical_data.date, dayfirst=False).dt.date
-        df_sorted = self.historical_data.sort_values(['date', 'transaction_number'], ascending=[True, False])
+    def calculate_balance(self, start_date: str, end_date: str):
+        self.transactions['date'] = pd.to_datetime(self.transactions.date, dayfirst=False).dt.date
+        df_sorted = self.transactions.sort_values(['date', 'transaction_number'], ascending=[True, False])
         balance = df_sorted.drop_duplicates(subset='date', keep='first')
         balance = balance.sort_values('date')[['date', 'balance']].reset_index(drop=True)
         full_dates = pd.date_range(start=start_date, end=end_date)
         balance = balance.set_index('date').reindex(full_dates)
         balance.index.name = 'date'
-        self.balance = (balance
-                        .ffill()
-                        .reset_index()
-                        .rename(columns={'balance': self.account_id}, inplace=False))
+        self.balance = (
+            balance
+            .ffill()
+            .reset_index()
+            .rename(columns={'balance': self.account_id}, inplace=False)
+        )
 
-@dataclass
-class AccountList:
-    accounts: list[Account]
-    merged_balances: Optional[pd.DataFrame] = None
 
-    @classmethod
-    def from_tables(cls, accounts: pd.DataFrame | None = None, holdings: pd.DataFrame | None = None):
-        if accounts is not  None:
-            accounts = [Account.from_row(row) for _, row in accounts.iterrows()]
-        if holdings is not None:
-            holdings = Account(
-                account_id="Holdings",
-                bank=None,
-                account_number=None,
-                type="Investment",
-                currency="GBP",
-                status="Active",
-            )
-            return cls(accounts + [holdings])
-        return cls(accounts)
+class AccountList(UserDict):
+    def __init__(self, accounts: dict[str, Account] = None):
+        super().__init__(accounts or {})
+        self.merged_balances: Optional[pd.DataFrame] = None
 
     def get_ids(self) -> list[str]:
-        return [a.account_id for a in self.accounts]
+        return list(self.data.keys())
 
     def get_account(self, account_id: str) -> Account:
-        return self.accounts[self.get_ids().index(account_id)]
+        return self.data[account_id]
 
-    def calculate_balances(
-            self,
-            start_date: Optional[str] = None,
-            end_date: Optional[str] = None):
+    def calculate_balances(self, start_date: Optional[str] = None, end_date: Optional[str] = None):
+        if not self.data:
+            self.merged_balances = pd.DataFrame()
+            return
+            
         if start_date is None:
-            start_date = min([min(acc.historical_data.date.to_list()) for acc in self.accounts])
+            start_date = min([min(acc.transactions.date.to_list()) for acc in self.data.values()])
         if end_date is None:
-            end_date = max([max(acc.historical_data.date.to_list()) for acc in self.accounts])
-        for account in self.accounts:
+            end_date = max([max(acc.transactions.date.to_list()) for acc in self.data.values()])
+            
+        for account in self.data.values():
             account.calculate_balance(start_date, end_date)
 
         self.merge_balances()
 
     def merge_balances(self):
         frames = []
-        for account in self.accounts:
-            balance = account.balance[['date', account.account_id]]
-            frames.append(balance.set_index('date'))
+        for account in self.data.values():
+            if account.balance is not None:
+                balance = account.balance[['date', account.account_id]]
+                frames.append(balance.set_index('date'))
 
+        if not frames:
+            return
+            
         merged_balances = pd.concat(frames, axis=1, join='outer')
         merged_balances.index = pd.to_datetime(merged_balances.index)
         full_dates = pd.date_range(merged_balances.index.min(), merged_balances.index.max())
@@ -104,18 +95,9 @@ class AccountList:
 
     def __getitem__(self, key):
         if isinstance(key, int):
-            return self.accounts[key]
+            return list(self.data.values())[key]
+        return super().__getitem__(key)
 
-        elif isinstance(key, str):
-            for account in self.accounts:
-                if account.account_id == key:
-                    return account
-            raise KeyError(f"No account found with account_id='{key}'")
-        else:
-            raise TypeError("Key must be int (index) or str (account_id)")
-
-    def __len__(self):
-        return len(self.accounts)
 
 
 

@@ -47,9 +47,9 @@ def plot_monthly_diff_plotly(year: int, df: pd.DataFrame):
     return fig
 
 @st.cache_data
-def prepare_monthly_diff(accounts: AccountList):
+def prepare_monthly_diff(merged_balances: pd.DataFrame):
     """Return a dict of {year: df} ready for plotting in Streamlit."""
-    df = monthly_balance_difference(accounts.merged_balances)
+    df = monthly_balance_difference(merged_balances)
     df = df.sort_index().dropna(subset=["monthly_diff"])
 
     # Extract years safely even if index level name is unknown

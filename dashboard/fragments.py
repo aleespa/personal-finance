@@ -14,8 +14,8 @@ from personal_finance.figures.holdings_analysis import plot_covariance_heatmap, 
 def show_summary(accounts):
     st.subheader("Summary")
     latest = accounts.merged_balances.iloc[-1, :-1]
-    active_acc = len([accounts for account in accounts if account.status == "Active"])
-    closed_acc = len([accounts for account in accounts if account.status != "Active"])
+    active_acc = len([acc for acc in accounts.values() if acc.status == "Active"])
+    closed_acc = len([acc for acc in accounts.values() if acc.status != "Active"])
     total_balance = latest.sum()
     total_credit = latest[latest < 0].sum()
     positive_accounts = (latest > 0).sum()
@@ -28,7 +28,7 @@ def show_summary(accounts):
     balance_1yr_ago = accounts.merged_balances.iloc[past_idx].sum()
     delta_balance = total_balance - balance_1yr_ago
 
-    number_transactions = sum(len(acc.historical_data) for acc in accounts)
+    number_transactions = sum(len(acc.transactions) for acc in accounts.values())
 
     colA, colB, colC, colD = st.columns(4)
     colA.metric(
@@ -57,7 +57,7 @@ def show_monthly_diff(year_data):
 
 @st.fragment
 def show_account_line(accounts):
-    account_ids = sorted(accounts.get_ids())
+    account_ids = sorted(accounts.keys())
     selected_account = st.selectbox("Select an account", account_ids)
     fig = plot_line_chart_account_plotly(accounts, selected_account)
     st.plotly_chart(fig, width='stretch')
@@ -89,7 +89,7 @@ def show_stacked_barchart(accounts, min_date, max_date, default_start, default_e
 
 @st.fragment
 def show_transactions_fragment(accounts: AccountList, min_date, max_date):
-    active_cl = [account.account_id for account in accounts if account.status == "Active"]
+    active_cl = [account.account_id for account in accounts.values() if account.status == "Active"]
     col1, col2, col3 = st.columns(3)
     date_range = col1.date_input("Date Range", [min_date, max_date])
     selected_accounts = col2.multiselect("Accounts", active_cl, default=active_cl)
@@ -103,7 +103,7 @@ def show_transactions_fragment(accounts: AccountList, min_date, max_date):
 
 @st.fragment
 def show_holdings_stacked(accounts, min_date, max_date, default_start, default_end):
-    if "Holdings" not in accounts.get_ids():
+    if "Holdings" not in accounts:
         return
     st.subheader("Holdings Evolution")
     start_date, end_date = st.slider(

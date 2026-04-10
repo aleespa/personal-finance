@@ -32,8 +32,14 @@ st.title("📊 Personal Finance Dashboard")
 
 uploaded_file = st.file_uploader("Upload workbook", type=["xlsx"])
 
-# Initialize session state
-if "accounts" not in st.session_state:
+from personal_finance.account import AccountList
+
+# Initialize session state with validation for old cached objects
+if "accounts" not in st.session_state or (
+    st.session_state.accounts is not None 
+    and not isinstance(st.session_state.accounts, AccountList)
+):
+    st.session_state.clear()
     st.session_state.accounts = None
 
 if "year_data" not in st.session_state:
@@ -47,7 +53,7 @@ if uploaded_file:
 if st.session_state.accounts:
     accounts = st.session_state.accounts
     accounts.calculate_balances()
-    st.session_state.year_data = prepare_monthly_diff(accounts)
+    st.session_state.year_data = prepare_monthly_diff(accounts.merged_balances)
 
     show_summary(accounts)
 

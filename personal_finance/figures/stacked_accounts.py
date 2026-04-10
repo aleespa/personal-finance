@@ -30,14 +30,14 @@ def plot_stacked_ts_balance_by_bank(accounts, start_date, end_date):
     monthly = df.resample("ME").last()
 
     # Map account_id → bank
-    account_to_bank = {acc.account_id: acc.bank for acc in accounts.accounts}
+    account_to_bank = {acc.account_id: acc.bank for acc in accounts.values()}
 
     # Assign colors per bank
-    unique_banks = list({acc.bank for acc in accounts.accounts if acc.bank})
+    unique_banks = list({acc.bank for acc in accounts.values() if acc.bank})
     cmap = px.colors.qualitative.Plotly
     bank_colors = {bank: cmap[i % len(cmap)] for i, bank in enumerate(unique_banks)}
     account_colors = {
-        acc.account_id: bank_colors.get(acc.bank, "gray") for acc in accounts.accounts
+        acc.account_id: bank_colors.get(acc.bank, "gray") for acc in accounts.values()
     }
 
     # Initialize figure

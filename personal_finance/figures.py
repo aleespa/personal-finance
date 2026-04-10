@@ -16,7 +16,7 @@ from personal_finance.account import AccountList
 def plot_line_chart_account(accounts: AccountList, filepath: Path):
     rolling_avg = accounts.merged_balances.rolling(window=7, min_periods=1).mean()
 
-    for account_id in accounts.get_ids():
+    for account_id in accounts.keys():
         fig, ax = plt.subplots(figsize=(8, 4), dpi=100)
 
         x = rolling_avg.index
@@ -172,13 +172,15 @@ def plot_monthly_stacked_balance_by_bank(accounts, start_date, end_date, filepat
     monthly = df.resample("ME").last()
 
     # Map each account_id to its bank
-    account_to_bank = {acc.account_id: acc.bank for acc in accounts.accounts}
+    account_to_bank = {acc.account_id: acc.bank for acc in accounts.values()}
 
-    # Get unique banks and assign distinct colors
-    unique_banks = list({acc.bank for acc in accounts.accounts if acc.bank})
+    # Define unique banks found in accounts
+    unique_banks = list({acc.bank for acc in accounts.values() if acc.bank})
     cmap = plt.get_cmap("tab10")
     bank_colors = {bank: cmap(i % 10) for i, bank in enumerate(unique_banks)}
-    account_colors = {acc.account_id: bank_colors.get(acc.bank, "gray") for acc in accounts.accounts}
+    
+    # Associate colors to banks dynamically
+    account_colors = {acc.account_id: bank_colors.get(acc.bank, "gray") for acc in accounts.values()}
 
     # --- Plot setup ---
     plt.figure(figsize=(14, 7), dpi=100)

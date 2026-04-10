@@ -10,7 +10,7 @@ def plot_holdings_stacked(accounts, start_date, end_date):
         return None
 
     holdings_acc = accounts["Holdings"]
-    df = holdings_acc.historical_data.copy()
+    df = holdings_acc.transactions.copy()
     
     # Ensure date is index
     df['date'] = pd.to_datetime(df['date'])
