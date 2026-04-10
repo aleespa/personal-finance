@@ -30,7 +30,7 @@ def show_summary(accounts):
 
     number_transactions = sum(len(acc.transactions) for acc in accounts.values())
 
-    colA, colB, colC, colD = st.columns(4)
+    colA, colB, colC = st.columns([1,1,4])
     colA.metric(
         "Total Balance",
         f"£{total_balance:,.0f}",
@@ -39,9 +39,19 @@ def show_summary(accounts):
     colA.metric("Total Credit", f"£{-total_credit:,.0f}")
     colB.metric("Active Accounts", active_acc)
     colB.metric("Closed Accounts", closed_acc)
-    colC.metric("Debit Accounts", positive_accounts)
-    colC.metric("Credit Accounts", negative_accounts)
-    colD.metric("Number of transactions", f"{number_transactions:,.0f}")
+    colA.metric("Debit Accounts", positive_accounts)
+    colA.metric("Credit Accounts", negative_accounts)
+    colB.metric("Number of transactions", f"{number_transactions:,.0f}")
+
+    if "Holdings" in accounts:
+        holdings_transactions = accounts["Holdings"].transactions
+        if not holdings_transactions.empty and "valuation" in holdings_transactions.columns and "balance" in holdings_transactions.columns:
+            latest_holdings = holdings_transactions.iloc[-1]
+            unrealized_gains = latest_holdings["valuation"] - latest_holdings["balance"]
+            colB.metric("Unrealized Gains", f"£{unrealized_gains:,.0f}")
+
+    with colC:
+        show_balance_pie(accounts)
 
 
 @st.fragment
@@ -57,7 +67,7 @@ def show_monthly_diff(year_data):
 
 @st.fragment
 def show_account_line(accounts):
-    account_ids = sorted(accounts.keys())
+    account_ids = ["total"] + sorted(accounts.keys())
     selected_account = st.selectbox("Select an account", account_ids)
     fig = plot_line_chart_account_plotly(accounts, selected_account)
     st.plotly_chart(fig, width='stretch')

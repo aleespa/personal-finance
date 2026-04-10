@@ -10,6 +10,31 @@ import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
+def _calculate_invested(group: pd.DataFrame) -> pd.Series:
+    group = group.sort_values("date")
+    avg_cost = 0.0
+    current_shares = 0.0
+    
+    records = []
+    for _, row in group.iterrows():
+        shares_transacted = row["shares"]
+        price = row["price"]
+        date = row["date"]
+        
+        if shares_transacted > 0:
+            total_cost = (current_shares * avg_cost) + (shares_transacted * price)
+            current_shares += shares_transacted
+            avg_cost = total_cost / current_shares if current_shares > 0 else 0
+        else:
+            current_shares += shares_transacted
+            if current_shares <= 1e-6:
+                current_shares = 0
+                avg_cost = 0
+                
+        records.append({"date": date, "invested": current_shares * avg_cost})
+        
+    return pd.DataFrame(records).groupby("date")["invested"].last()
+
 def _fetch_from_yf(yf_name: str, start_date: datetime, end_date: datetime) -> pd.Series:
     try:
         t = yf.Ticker(yf_name)
@@ -236,10 +261,32 @@ def get_historical_holdings(
         .fillna(0)
     )
 
+    # Calculate historical invested amount per ISIN
+    invested_series_list = []
+    for isin, group in table.groupby("isin"):
+        s = _calculate_invested(group)
+        s.name = isin
+        invested_series_list.append(s)
+        
+    invested_df = pd.concat(invested_series_list, axis=1) if invested_series_list else pd.DataFrame()
+    invested = (
+        invested_df
+        .reindex(date_range)
+        .ffill()
+        .fillna(0)
+    )
+
+    valuation_matrix = holdings.mul(price_data)
+    unrealized_matrix = valuation_matrix - invested
+
+    val_df = valuation_matrix.rename(columns=lambda x: f"{isin_names.get(x, x)}_valuation")
+    inv_df = invested.rename(columns=lambda x: f"{isin_names.get(x, x)}_invested")
+    
     output = (
-        holdings.mul(price_data)
+        pd.concat([unrealized_matrix, val_df, inv_df], axis=1)
         .assign(**{
-            "balance": lambda x: x.sum(axis=1),
+            "balance": invested.sum(axis=1),
+            "valuation": valuation_matrix.sum(axis=1),
             "transaction_number": np.arange(1, 1+len(holdings))
         })
         .rename(columns=isin_names)

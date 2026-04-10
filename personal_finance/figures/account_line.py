@@ -64,7 +64,13 @@ def plot_line_chart_account_plotly(accounts, account_id: str):
         height=500,
     )
 
+    end_date = x.max()
+    five_years_ago = end_date - pd.DateOffset(years=5)
+    non_zero_dates = x[y != 0]
+    first_active_date = non_zero_dates.min() if not non_zero_dates.empty else x.min()
+    start_date = max(five_years_ago, first_active_date)
+
     fig.update_yaxes(tickprefix="£")
-    fig.update_xaxes(showgrid=True)
+    fig.update_xaxes(showgrid=True, range=[start_date, end_date])
 
     return fig

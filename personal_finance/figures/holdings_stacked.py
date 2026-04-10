@@ -20,8 +20,8 @@ def plot_holdings_stacked(accounts, start_date, end_date):
     df = df.loc[start_date:end_date]
 
     # Exclude non-ticker columns
-    cols_to_exclude = ["balance", "transaction_number"]
-    ticker_cols = [c for c in df.columns if c not in cols_to_exclude]
+    cols_to_exclude = ["balance", "transaction_number", "valuation"]
+    ticker_cols = [c for c in df.columns if c not in cols_to_exclude and not c.endswith("_valuation") and not c.endswith("_invested")]
 
     fig = go.Figure()
 
@@ -38,9 +38,9 @@ def plot_holdings_stacked(accounts, start_date, end_date):
         )
 
     fig.update_layout(
-        title="Holdings Daily Evolution by Ticker",
+        title="Holdings Unrealized Gain/Loss Evolution by Ticker",
         xaxis=dict(title="Date"),
-        yaxis=dict(title="Value (£)", tickprefix="£"),
+        yaxis=dict(title="Unrealized P&L (£)", tickprefix="£"),
         template="plotly_white",
         height=600,
         legend=dict(title="Ticker", x=1.05, y=1),

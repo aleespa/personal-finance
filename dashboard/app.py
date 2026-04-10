@@ -57,15 +57,14 @@ if st.session_state.accounts:
 
     show_summary(accounts)
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns([1,2])
     with col1:
         show_monthly_diff(st.session_state.year_data)
 
     with col2:
         show_account_line(accounts)
 
-    with col3:
-        show_balance_pie(accounts)
+
 
     min_date = pd.to_datetime("2020-01-01").date()
     max_date = pd.to_datetime("today").date()
