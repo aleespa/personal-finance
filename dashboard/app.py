@@ -46,8 +46,12 @@ if "year_data" not in st.session_state:
     st.session_state.year_data = None
 
 if uploaded_file:
-    accounts = create_accounts(uploaded_file)
-    holdings = create_holdings(uploaded_file)
+    try:
+        accounts = create_accounts(uploaded_file)
+        holdings = create_holdings(uploaded_file)
+    except ValueError as error:
+        st.error(str(error))
+        st.stop()
     st.session_state.accounts = accounts
 
 if st.session_state.accounts:

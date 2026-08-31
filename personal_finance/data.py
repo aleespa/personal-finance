@@ -51,13 +51,35 @@ def create_accounts(table_path: Path):
 
 def read_historical_data(table_path: Path, account_id: str) -> pd.DataFrame:
     try:
-        return (
+        transactions = (
             pd.read_excel(table_path, sheet_name=account_id, engine='calamine')
             .pipe(normalize_column_names)
-            .assign(date=lambda x: pd.to_datetime(x.date, dayfirst=True))
+            # Excel files often contain formatted-but-empty rows after the
+            # actual transaction table. They are not transactions.
+            .dropna(how="all")
         )
     except KeyError:
         raise ValueError(f"No data found for account_id='{account_id}'")
+
+    if "date" not in transactions.columns:
+        raise ValueError(
+            f"Account '{account_id}' is missing the required 'date' column"
+        )
+
+    transactions["date"] = pd.to_datetime(
+        transactions["date"], dayfirst=True, errors="coerce"
+    )
+    invalid_dates = transactions[transactions["date"].isna()]
+    if not invalid_dates.empty:
+        # Excel/pandas row numbers are one-based when reported to the user;
+        # add one for the header row as well.
+        rows = ", ".join(str(index + 2) for index in invalid_dates.index)
+        raise ValueError(
+            f"Account '{account_id}' has a blank or invalid date in Excel row(s) "
+            f"{rows}. Fill in the date or remove those transaction rows."
+        )
+
+    return transactions
 
 
 def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
