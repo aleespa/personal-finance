@@ -1,11 +1,7 @@
 import pandas as pd
-
-from personal_finance.account import AccountList
-
 import plotly.graph_objects as go
-import streamlit as st
 
-@st.cache_data
+
 def plot_monthly_diff_plotly(year: int, df: pd.DataFrame):
     y = df["monthly_diff"].to_numpy()
     months = df.index.to_numpy()
@@ -46,9 +42,8 @@ def plot_monthly_diff_plotly(year: int, df: pd.DataFrame):
 
     return fig
 
-@st.cache_data
 def prepare_monthly_diff(merged_balances: pd.DataFrame):
-    """Return a dict of {year: df} ready for plotting in Streamlit."""
+    """Return a dict of {year: df} ready for plotting."""
     df = monthly_balance_difference(merged_balances)
     df = df.sort_index().dropna(subset=["monthly_diff"])
 
