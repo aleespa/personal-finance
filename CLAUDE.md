@@ -28,11 +28,11 @@ Parsed in `personal_finance/data.py`:
 - **One sheet per account**, named exactly after its `Account id`, with `Date, Balance, Transaction number`. Dates are parsed `dayfirst=True`; a blank/invalid date raises `ValueError` naming the Excel row.
 - Optional **`Holdings`** sheet: `Date, Full name, ISIN, YF name, Transaction type, Shares, Price, Amount` (one row per buy/sell; sells have negative shares).
 
-All column headers are normalized to snake_case via `normalize_column_names` before use. Excel is read with `engine='calamine'`. `data/demo_data.xlsx` is the reference example.
+All column headers are normalized to snake_case via `normalize_column_names` before use. Every sheet is then validated against a Pandera schema in `personal_finance/schemas.py` (`validate_sheet`, lazy mode). Failures raise `WorkbookValidationError`, a `ValueError` subclass that `dashboard/app.py` shows with `st.error`. Messages use the human header and the one-based Excel row, which relies on keeping the original `read_excel` index (only fully empty rows are dropped). Add new required columns or allowed values to the schemas there. Excel is read with `engine='calamine'`. `data/demo_data.xlsx` is the reference example.
 
 ### Data flow
 
-1. `data.create_accounts(path)` builds an `AccountList` (a `UserDict` of `account_id -> Account`). Each `Account` dataclass validates its `transactions` DataFrame with a Pandera schema in `__post_init__`.
+1. `data.create_accounts(path)` builds an `AccountList` (a `UserDict` of `account_id -> Account`). Each `Account` dataclass re-validates its `transactions` DataFrame against `BALANCES_SCHEMA` in `__post_init__`, which also covers the synthetic Holdings account.
 2. If a `Holdings` sheet exists, `holdings.get_historical_holdings` turns it into a synthetic `Account` with id `"Holdings"` (type `Investment`, GBP). Its daily `transactions` frame has `balance` = invested cost basis (average-cost method), `valuation` = market value, plus per-asset `<name>_valuation`, `<name>_invested` and unrealized-P&L columns.
 3. `AccountList.calculate_balances()` computes a daily forward-filled balance per account (last transaction of each day = the one with the highest `transaction_number`) and merges them into `merged_balances`: a daily `DatetimeIndex` frame with one column per account plus `total`.
 4. `dashboard/app.py` stores the `AccountList` in `st.session_state.accounts` and renders sections from `dashboard/fragments.py`, each an `@st.fragment` that calls a Plotly builder in `personal_finance/figures/`. All charts are Plotly; there is no matplotlib code.

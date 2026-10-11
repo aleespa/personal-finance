@@ -5,37 +5,45 @@ import pandas as pd
 
 from personal_finance.account import Account, AccountList
 from personal_finance.holdings import get_historical_holdings
+from personal_finance.schemas import (
+    ACCOUNTS_SCHEMA,
+    BALANCES_SCHEMA,
+    HOLDINGS_SCHEMA,
+    WorkbookValidationError,
+    parse_dates,
+    validate_sheet,
+)
 
 
 def create_holdings(table_path: Path):
     data = pd.read_excel(table_path, sheet_name=None, engine='calamine')
     if "Holdings" in data:
-        holdings = data["Holdings"].pipe(normalize_column_names)
-        return holdings
+        return read_holdings(data["Holdings"])
     return None
+
 
 def create_accounts(table_path: Path):
     data = pd.read_excel(table_path, sheet_name=None, engine='calamine')
     accounts_dict = {}
 
     if "Accounts" in data:
-        accounts_table = data["Accounts"].pipe(normalize_column_names)
+        accounts_table = validate_sheet(
+            _clean(data["Accounts"]), ACCOUNTS_SCHEMA, "Accounts"
+        )
         for _, row in accounts_table.iterrows():
             account_id = row["account_id"]
-            transactions = read_historical_data(table_path, account_id)
             accounts_dict[account_id] = Account(
                 account_id=account_id,
                 bank=row["bank"],
-                account_number=row["account_number"],
+                account_number=row.get("account_number"),
                 type=row["type"],
                 currency=row["currency"],
                 status=row["status"],
-                transactions=transactions,
+                transactions=read_historical_data(data, account_id),
             )
 
     if "Holdings" in data:
-        holdings_table = data["Holdings"].pipe(normalize_column_names)
-        transactions = get_historical_holdings(holdings_table)
+        transactions = get_historical_holdings(read_holdings(data["Holdings"]))
         accounts_dict["Holdings"] = Account(
             account_id="Holdings",
             bank=None,
@@ -49,37 +57,26 @@ def create_accounts(table_path: Path):
     return AccountList(accounts_dict)
 
 
-def read_historical_data(table_path: Path, account_id: str) -> pd.DataFrame:
-    try:
-        transactions = (
-            pd.read_excel(table_path, sheet_name=account_id, engine='calamine')
-            .pipe(normalize_column_names)
-            # Excel files often contain formatted-but-empty rows after the
-            # actual transaction table. They are not transactions.
-            .dropna(how="all")
-        )
-    except KeyError:
-        raise ValueError(f"No data found for account_id='{account_id}'")
+def read_holdings(sheet: pd.DataFrame) -> pd.DataFrame:
+    holdings = parse_dates(_clean(sheet), "Holdings")
+    return validate_sheet(holdings, HOLDINGS_SCHEMA, "Holdings")
 
-    if "date" not in transactions.columns:
-        raise ValueError(
-            f"Account '{account_id}' is missing the required 'date' column"
-        )
 
-    transactions["date"] = pd.to_datetime(
-        transactions["date"], dayfirst=True, errors="coerce"
-    )
-    invalid_dates = transactions[transactions["date"].isna()]
-    if not invalid_dates.empty:
-        # Excel/pandas row numbers are one-based when reported to the user;
-        # add one for the header row as well.
-        rows = ", ".join(str(index + 2) for index in invalid_dates.index)
-        raise ValueError(
-            f"Account '{account_id}' has a blank or invalid date in Excel row(s) "
-            f"{rows}. Fill in the date or remove those transaction rows."
+def read_historical_data(data: dict[str, pd.DataFrame], account_id: str) -> pd.DataFrame:
+    if account_id not in data:
+        raise WorkbookValidationError(
+            f"Account '{account_id}' is listed in the Accounts sheet but has no "
+            f"sheet named '{account_id}'."
         )
+    transactions = parse_dates(_clean(data[account_id]), account_id)
+    return validate_sheet(transactions, BALANCES_SCHEMA, account_id)
 
-    return transactions
+
+def _clean(sheet: pd.DataFrame) -> pd.DataFrame:
+    # Excel files often contain formatted-but-empty rows after the actual
+    # table. They are not data. The original index is kept so errors can
+    # point at the right Excel row.
+    return sheet.pipe(normalize_column_names).dropna(how="all")
 
 
 def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:

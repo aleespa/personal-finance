@@ -1,9 +1,10 @@
-import pandera.pandas as pa
 from collections import UserDict
 from dataclasses import dataclass, field
 from typing import Optional, Literal
 
 import pandas as pd
+
+from personal_finance.schemas import BALANCES_SCHEMA, validate_sheet
 
 
 @dataclass
@@ -18,15 +19,7 @@ class Account:
     balance: Optional[pd.DataFrame] = None
 
     def __post_init__(self):
-        schema = pa.DataFrameSchema(
-            {
-                "date": pa.Column(pa.DateTime),
-                "balance": pa.Column(float, coerce=True, nullable=True),
-                "transaction_number": pa.Column(float, coerce=True, nullable=True),
-            },
-            strict=False,
-        )
-        self.transactions = schema.validate(self.transactions)
+        self.transactions = validate_sheet(self.transactions, BALANCES_SCHEMA, self.account_id)
 
     def calculate_balance(self, start_date: str, end_date: str):
         self.transactions['date'] = pd.to_datetime(self.transactions.date, dayfirst=False).dt.date

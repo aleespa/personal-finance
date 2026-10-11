@@ -41,6 +41,8 @@ If neither source has a price, the transaction price is used.
 
 The dashboard expects an `.xlsx` workbook. Column headers are case- and spacing-insensitive (`Account id` and `account_id` both work). See `data/demo_data.xlsx` for a complete example.
 
+The workbook is checked when you upload it. If a sheet has problems, the dashboard lists all of them at once, with the column, the offending value and the Excel row number. Fully empty rows are ignored.
+
 ### 1. `Accounts` sheet
 
 | Account id | Bank     | Account number | Type    | Currency | Status |
@@ -51,6 +53,7 @@ The dashboard expects an `.xlsx` workbook. Column headers are case- and spacing-
 * `Type` must be one of: `Current`, `Savings`, `Credit Card`, `Loan`, `Investment`
 * `Currency` must be `GBP` or `MXN`
 * `Status` must be `Active` or `Closed`
+* `Account id` must be unique. `Account number` is optional.
 
 ### 2. One sheet per account
 
@@ -63,7 +66,7 @@ Each account needs its own sheet, named exactly like its `Account id`.
 | 02/01/2025 | 1150    | 3                  |
 
 * `Date` is read day-first (`DD/MM/YYYY`) when it is text. Every row must have a valid date.
-* `Balance` is the account balance after that transaction.
+* `Balance` is the account balance after that transaction. It must be a number and can't be blank.
 * When a day has several rows, the row with the highest `Transaction number` is that day's closing balance.
 
 ### 3. `Holdings` sheet (optional)
@@ -74,6 +77,7 @@ One row per buy or sell of an investment.
 | ---------- | -------------------- | ------------ | -------- | ---------------- | ------ | ------ | ------ |
 | 15/03/2025 | Vanguard FTSE All-World | IE00BK5BQT80 | VWRP.L   | Buy              | 10     | 110.50 | 1105   |
 
+* `Date`, `Full name`, `ISIN`, `Shares` and `Price` are required. `Price` can't be negative.
 * `Shares` is negative for sells.
 * `YF name` is the Yahoo Finance ticker. Leave it blank to rely on EODHD.
 * Prices are converted to GBP. Invested amount uses the average-cost method.
