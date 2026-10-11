@@ -10,7 +10,7 @@ import streamlit as st
 
 from personal_finance.figures.monthly_bars import prepare_monthly_diff
 
-from personal_finance.data import create_accounts, create_holdings
+from personal_finance.data import create_accounts, create_holdings, read_workbook
 
 from dashboard.fragments import (
     show_monthly_diff,
@@ -47,8 +47,9 @@ if "year_data" not in st.session_state:
 
 if uploaded_file:
     try:
-        accounts = create_accounts(uploaded_file)
-        holdings = create_holdings(uploaded_file)
+        sheets = read_workbook(uploaded_file)
+        accounts = create_accounts(sheets)
+        holdings = create_holdings(sheets)
     except ValueError as error:
         st.error(str(error))
         st.stop()

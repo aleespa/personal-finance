@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 import pandas as pd
 
-from personal_finance.data import create_accounts, create_holdings
+from personal_finance.data import create_accounts, create_holdings, read_workbook
 from personal_finance.account import AccountList
 
 class TestPersonalFinanceData(unittest.TestCase):
@@ -41,6 +41,17 @@ class TestPersonalFinanceData(unittest.TestCase):
         self.assertFalse(tx["valuation"].isnull().all())
         self.assertFalse(tx["balance"].isnull().all())
         
+    def test_read_workbook_once(self):
+        """Parsed sheets give the same results as reading from the path."""
+        sheets = read_workbook(self.data_path)
+        pd.testing.assert_frame_equal(
+            create_holdings(sheets), create_holdings(self.data_path)
+        )
+        self.assertEqual(
+            sorted(create_accounts(sheets).get_ids()),
+            sorted(create_accounts(self.data_path).get_ids()),
+        )
+
     def test_calculate_balances(self):
         """Test the merging process across all accounts."""
         accounts = create_accounts(self.data_path)

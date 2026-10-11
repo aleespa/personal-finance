@@ -1,5 +1,4 @@
 import re
-from pathlib import Path
 
 import pandas as pd
 
@@ -16,15 +15,26 @@ from personal_finance.schemas import (
 )
 
 
-def create_holdings(table_path: Path):
-    data = pd.read_excel(table_path, sheet_name=None, engine='calamine')
+def read_workbook(source) -> dict[str, pd.DataFrame]:
+    """Parse every sheet of the workbook at a path or in a file-like object."""
+    return pd.read_excel(source, sheet_name=None, engine='calamine')
+
+
+def _sheets(source) -> dict[str, pd.DataFrame]:
+    # Callers that need both accounts and holdings pass the parsed sheets so
+    # the file is read only once.
+    return source if isinstance(source, dict) else read_workbook(source)
+
+
+def create_holdings(source):
+    data = _sheets(source)
     if "Holdings" in data:
         return read_holdings(data["Holdings"])
     return None
 
 
-def create_accounts(table_path: Path):
-    data = pd.read_excel(table_path, sheet_name=None, engine='calamine')
+def create_accounts(source):
+    data = _sheets(source)
     accounts_dict = {}
 
     if "Accounts" in data:
