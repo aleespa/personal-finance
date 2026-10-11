@@ -8,47 +8,29 @@ from personal_finance.figures.monthly_bars import plot_monthly_diff_plotly
 from personal_finance.figures.stacked_accounts import plot_stacked_ts_balance_by_bank
 from personal_finance.figures.holdings_stacked import plot_holdings_stacked
 from personal_finance.figures.holdings_analysis import plot_covariance_heatmap, plot_tickers_evolution
+from personal_finance.summary import active_tickers, compute_summary
 
 
 @st.fragment
 def show_summary(accounts):
     st.subheader("Summary")
-    latest = accounts.merged_balances.iloc[-1, :-1]
-    active_acc = len([acc for acc in accounts.values() if acc.status == "Active"])
-    closed_acc = len([acc for acc in accounts.values() if acc.status != "Active"])
-    total_balance = latest.sum()
-    total_credit = latest[latest < 0].sum()
-    positive_accounts = (latest > 0).sum()
-    negative_accounts = (latest < 0).sum()
-
-    one_year_ago_date = accounts.merged_balances.index[-1] - pd.DateOffset(years=1)
-    past_idx = accounts.merged_balances.index.get_indexer(
-        [one_year_ago_date], method="nearest"
-    )[0]
-    balance_1yr_ago = accounts.merged_balances.iloc[past_idx].sum()
-    delta_balance = total_balance - balance_1yr_ago
-
-    number_transactions = sum(len(acc.transactions) for acc in accounts.values())
+    summary = compute_summary(accounts)
 
     colA, colB, colC = st.columns([1,1,4])
     colA.metric(
         "Total Balance",
-        f"£{total_balance:,.0f}",
-        delta=f"{delta_balance:,.0f}",
+        f"£{summary['total_balance']:,.0f}",
+        delta=f"{summary['delta_1y']:,.0f}",
     )
-    colA.metric("Total Credit", f"£{-total_credit:,.0f}")
-    colB.metric("Active Accounts", active_acc)
-    colB.metric("Closed Accounts", closed_acc)
-    colA.metric("Debit Accounts", positive_accounts)
-    colA.metric("Credit Accounts", negative_accounts)
-    colB.metric("Number of transactions", f"{number_transactions:,.0f}")
+    colA.metric("Total Credit", f"£{summary['total_credit']:,.0f}")
+    colB.metric("Active Accounts", summary["active_accounts"])
+    colB.metric("Closed Accounts", summary["closed_accounts"])
+    colA.metric("Debit Accounts", summary["debit_accounts"])
+    colA.metric("Credit Accounts", summary["credit_accounts"])
+    colB.metric("Number of transactions", f"{summary['transactions']:,.0f}")
 
-    if "Holdings" in accounts:
-        holdings_transactions = accounts["Holdings"].transactions
-        if not holdings_transactions.empty and "valuation" in holdings_transactions.columns and "balance" in holdings_transactions.columns:
-            latest_holdings = holdings_transactions.iloc[-1]
-            unrealized_gains = latest_holdings["valuation"] - latest_holdings["balance"]
-            colB.metric("Unrealized Gains", f"£{unrealized_gains:,.0f}")
+    if summary["unrealized_gains"] is not None:
+        colB.metric("Unrealized Gains", f"£{summary['unrealized_gains']:,.0f}")
 
     with colC:
         show_balance_pie(accounts)
@@ -136,31 +118,16 @@ def show_holdings_analysis(holdings):
 
     st.subheader("Holdings Analysis")
 
-    df = holdings.copy()
-    
-    # We normalized column names in create_holdings, so they are snake_case now.
-    date_col = "date"
-    yf_name_col = "yf_name"
-    full_name_col = "full_name"
-    shares_col = "shares"
-
-    df[date_col] = pd.to_datetime(df[date_col])
-    
-    # Latest holdings are those where cumulative shares > 0.
-    latest_holdings = df.groupby(yf_name_col)[shares_col].sum()
-    active_tickers = latest_holdings[latest_holdings > 0].index.tolist()
-    
-    if not active_tickers:
+    tickers, names_dict = active_tickers(holdings)
+    if not tickers:
         st.write("No active holdings found for analysis.")
         return
-
-    names_dict = df.set_index(yf_name_col)[full_name_col].to_dict()
 
     col1, col2 = st.columns([1,3])
 
     with col1:
         st.write("### Covariance Heatmap")
-        fig_cov = plot_covariance_heatmap(active_tickers)
+        fig_cov = plot_covariance_heatmap(tickers)
         if fig_cov:
             st.plotly_chart(fig_cov, width='stretch')
         else:
@@ -168,7 +135,7 @@ def show_holdings_analysis(holdings):
 
     with col2:
         st.write("### Ticker Evolution")
-        fig_evol = plot_tickers_evolution(active_tickers, names_dict)
+        fig_evol = plot_tickers_evolution(tickers, names_dict)
         if fig_evol:
             st.plotly_chart(fig_evol, width='stretch')
         else:
