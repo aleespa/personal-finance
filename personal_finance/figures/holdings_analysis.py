@@ -3,22 +3,40 @@ import pandas as pd
 import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
-def get_last_year_returns(tickers):
+# Last-year closes per (tickers, day). Both analysis charts need the same
+# download; failed downloads are not stored so they are retried.
+_PRICE_CACHE: dict[tuple[tuple[str, ...], date], pd.DataFrame] = {}
+_PRICE_CACHE_SIZE = 8
+
+
+def _last_year_prices(tickers) -> pd.DataFrame:
+    key = (tuple(sorted(tickers)), date.today())
+    if key in _PRICE_CACHE:
+        return _PRICE_CACHE[key].copy()
+
     end_date = datetime.now()
     start_date = end_date - timedelta(days=365)
-    
-    data = yf.download(tickers, start=start_date, end=end_date, progress=False)
+    data = yf.download(list(key[0]), start=start_date, end=end_date, progress=False)
     if data.empty:
         return pd.DataFrame()
-    
+
     # Use Adj Close or Close
     prices = data["Adj Close"] if "Adj Close" in data.columns else data["Close"]
-    
     if isinstance(prices, pd.Series):
-        prices = prices.to_frame(name=tickers[0])
-        
+        prices = prices.to_frame(name=key[0][0])
+
+    if len(_PRICE_CACHE) >= _PRICE_CACHE_SIZE:
+        _PRICE_CACHE.pop(next(iter(_PRICE_CACHE)))
+    _PRICE_CACHE[key] = prices
+    return prices.copy()
+
+
+def get_last_year_returns(tickers):
+    prices = _last_year_prices(tickers)
+    if prices.empty:
+        return pd.DataFrame(), pd.DataFrame()
     returns = np.log(prices).diff().dropna()
     return returns, prices
 
