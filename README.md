@@ -1,31 +1,42 @@
 # Personal Finance Dashboard
 
-A Streamlit dashboard for visualizing personal finance data. You upload an Excel workbook with your accounts, their balance history and, optionally, your investment transactions. The app builds a daily balance history across all accounts and renders interactive Plotly charts.
+A local web app for visualizing personal finance data. You upload an Excel workbook with your accounts, their balance history and, optionally, your investment transactions. The app builds a daily balance history across all accounts and renders interactive Plotly charts.
+
+It runs on your machine only: a FastAPI server (`personal_finance/api/`) processes the workbook in memory and serves an Angular UI (`web/`). Nothing is stored after the server stops, so you upload the workbook each time.
 
 ## Features
 
 * Upload an Excel workbook with accounts, balance histories and investment holdings
 * Daily balance history per account and in total, forward-filled between entries
-* Interactive Plotly charts:
-  * Summary metrics (total balance, year-on-year change, unrealized gains) and balance distribution by bank
-  * Monthly balance differences per year
-  * Individual account balances over time
-  * Stacked balances by bank for a selected date range
-  * Unrealized gain/loss per holding over time
-  * Last-year normalized price evolution and a variance/correlation heatmap for current holdings
-* Filterable table of daily balances by account and date range
+* Four tabs of interactive Plotly charts:
+  * **Overview:** summary figures (total balance, year-on-year change, unrealized gains, credit), balance by bank for a chosen month, monthly balance change per year, total balance over time
+  * **Accounts:** any account's balance over time, month-end balances stacked by bank with a range slider
+  * **Investments** (only with a `Holdings` sheet): unrealized gain/loss per holding over time, last-year volatility/correlation heatmap and indexed price evolution
+  * **Transactions:** table of daily balances filtered by date range and account
+* Light and dark themes (follows your OS, with a toggle)
+* Workbook problems listed on upload with the sheet, column and Excel row
 * Historical prices for holdings fetched automatically and cached locally
 * Bank brand colors configurable in `bank_colors.json`
 
 ## Installation
 
-Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/).
+Requires:
+
+* Python 3.13+ and [uv](https://docs.astral.sh/uv/)
+* Node.js 24 (or 22.22+) to build the web UI. `web/.node-version` pins 24 for version managers such as [fnm](https://github.com/Schniz/fnm).
 
 ```bash
 git clone <repository_url>
 cd personal-finance
 uv sync
+cd web
+npm ci
+npm run build
 ```
+
+Rebuild the UI (`npm run build` in `web/`) after pulling frontend changes. The build output in `web/dist/` is not committed.
+
+With fnm on Windows, run the npm commands through the pinned version, e.g. `fnm exec --using=24 -- npm.cmd ci`.
 
 ### Optional: EODHD API key
 
@@ -85,22 +96,34 @@ One row per buy or sell of an investment.
 
 The holdings appear as an extra account named `Holdings`.
 
-## Running the Dashboard
+## Running the App
 
 From the project root:
 
 ```bash
-uv run streamlit run dashboard/app.py
+uv run personal-finance
 ```
 
-Open the URL Streamlit prints (usually `http://localhost:8501`) and upload your workbook.
+This starts the server on `http://127.0.0.1:8000` and opens it in your browser. Options: `--port 8080` to use another port, `--no-browser` to skip opening a tab. Stop it with Ctrl+C.
 
 ## Development
 
+For hot reload while changing the UI, run the API and the Angular dev server side by side:
+
 ```bash
-uv run python -m unittest discover tests      # run the tests
-uv run python debug.py --workbook data/demo_data.xlsx   # print each pipeline stage
+uv run uvicorn personal_finance.api.main:create_app --factory --reload   # API on :8000
+cd web && npm start                                                       # UI on :4200, proxies /api to :8000
 ```
+
+Tests:
+
+```bash
+uv run python -m unittest discover tests                 # Python tests (run from the repo root)
+cd web && npx ng test --watch=false                       # Angular unit tests
+uv run python debug.py --workbook data/demo_data.xlsx    # print each pipeline stage
+```
+
+The API's interactive docs are at `http://127.0.0.1:8000/docs` while the server runs.
 
 ## Notes
 
