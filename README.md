@@ -45,15 +45,16 @@ The workbook is checked when you upload it. If a sheet has problems, the dashboa
 
 ### 1. `Accounts` sheet
 
-| Account id | Bank     | Account number | Type    | Currency | Status |
-| ---------- | -------- | -------------- | ------- | -------- | ------ |
-| Barclays   | Barclays | 12345678       | Current | GBP      | Active |
-| Revolut    | Revolut  | 98765432       | Savings | GBP      | Active |
+| Account id | Bank     | Account number | Type    | Currency | Closed date |
+| ---------- | -------- | -------------- | ------- | -------- | ----------- |
+| Barclays   | Barclays | 12345678       | Current | GBP      |             |
+| Revolut    | Revolut  | 98765432       | Savings | GBP      | 31/03/2024  |
 
 * `Type` must be one of: `Current`, `Savings`, `Credit Card`, `Loan`, `Investment`
 * `Currency` must be `GBP` or `MXN`
-* `Status` must be `Active` or `Closed`
 * `Account id` must be unique. `Account number` is optional.
+* `Closed date` is optional. Leave it blank for open accounts. After that date the account's balance counts as zero, and no balance entries may come after it.
+* `Status` is optional and can be `Active` or `Closed`. An account is closed when it has a `Closed date`. An account marked `Closed` without a date is treated as closed on the date of its last balance entry. An account marked `Active` can't have a `Closed date`.
 
 ### 2. One sheet per account
 

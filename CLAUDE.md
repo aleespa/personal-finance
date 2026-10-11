@@ -24,7 +24,7 @@ Streamlit dashboard (`dashboard/`) on top of a plain-Python package (`personal_f
 
 Parsed in `personal_finance/data.py`:
 
-- **`Accounts`** sheet: columns `Account id, Bank, Account number, Type, Currency, Status`.
+- **`Accounts`** sheet: columns `Account id, Bank, Type, Currency`, plus optional `Account number`, `Status` and `Closed date`. `Account.status` is derived, not read: an account is `Closed` iff it resolves a `closed_date` (explicit `Closed date`, or the last balance entry when `Status` is `Closed` without a date). `calculate_balance` sets the balance to 0 after `closed_date`.
 - **One sheet per account**, named exactly after its `Account id`, with `Date, Balance, Transaction number`. Dates are parsed `dayfirst=True`; a blank/invalid date raises `ValueError` naming the Excel row.
 - Optional **`Holdings`** sheet: `Date, Full name, ISIN, YF name, Transaction type, Shares, Price, Amount` (one row per buy/sell; sells have negative shares).
 

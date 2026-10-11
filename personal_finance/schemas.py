@@ -23,7 +23,8 @@ ACCOUNTS_SCHEMA = pa.DataFrameSchema(
         "account_number": pa.Column(nullable=True, required=False),
         "type": pa.Column(str, pa.Check.isin(ACCOUNT_TYPES)),
         "currency": pa.Column(str, pa.Check.isin(CURRENCIES)),
-        "status": pa.Column(str, pa.Check.isin(STATUSES)),
+        "status": pa.Column(str, pa.Check.isin(STATUSES), nullable=True, required=False),
+        "closed_date": pa.Column(pa.DateTime, nullable=True, required=False),
     },
     strict=False,
 )
@@ -60,19 +61,30 @@ def validate_sheet(df: pd.DataFrame, schema: pa.DataFrameSchema, sheet: str) -> 
         ) from None
 
 
-def parse_dates(df: pd.DataFrame, sheet: str) -> pd.DataFrame:
-    """Parse the ``date`` column day-first, reporting blank or unreadable dates by row."""
-    if "date" not in df.columns:
+def parse_dates(
+    df: pd.DataFrame, sheet: str, column: str = "date", required: bool = True
+) -> pd.DataFrame:
+    """Parse a date column day-first, reporting unreadable dates by row.
+
+    With ``required=False`` the column may be absent and cells may be blank,
+    but any non-blank cell must still be a readable date.
+    """
+    header = _header(column)
+    if column not in df.columns:
+        if not required:
+            return df
         raise WorkbookValidationError(
-            f"Sheet '{sheet}' is missing the required 'Date' column."
+            f"Sheet '{sheet}' is missing the required '{header}' column."
         )
     df = df.copy()
-    df["date"] = pd.to_datetime(df["date"], dayfirst=True, errors="coerce")
-    invalid = df.index[df["date"].isna()]
-    if len(invalid):
+    original = df[column]
+    df[column] = pd.to_datetime(original, dayfirst=True, errors="coerce")
+    invalid = df[column].isna() if required else df[column].isna() & original.notna()
+    if invalid.any():
+        problem = "a blank or invalid" if required else "an invalid"
         raise WorkbookValidationError(
-            f"Sheet '{sheet}' has a blank or invalid date in Excel row(s) "
-            f"{_rows(invalid)}. Fill in the date or remove those rows."
+            f"Sheet '{sheet}' has {problem} '{header}' in Excel row(s) "
+            f"{excel_rows(df.index[invalid])}. Fill in the date or remove those rows."
         )
     return df
 
@@ -92,7 +104,7 @@ def format_failures(failures: pd.DataFrame, sheet: str) -> str:
     for (column, check), group in failures.groupby(["column", "check"], dropna=False, sort=False):
         header = _header(column)
         values = _values(group["failure_case"])
-        rows = _rows(group["index"].dropna())
+        rows = excel_rows(group["index"].dropna())
         where = f" in Excel row(s) {rows}" if rows else ""
 
         if check == "column_in_dataframe":
@@ -122,7 +134,7 @@ def _header(column) -> str:
     return special.get(column, str(column).replace("_", " ").capitalize())
 
 
-def _rows(index) -> str:
+def excel_rows(index) -> str:
     # pandas index is zero-based; Excel rows are one-based with a header row.
     rows = sorted({int(i) + 2 for i in index})
     shown = ", ".join(str(r) for r in rows[:10])

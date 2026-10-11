@@ -46,7 +46,7 @@ def holdings_sheet(**overrides):
     return pd.DataFrame([row])
 
 
-class TestWorkbookValidation(unittest.TestCase):
+class WorkbookTestCase(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.path = Path(self._tmp.name) / "book.xlsx"
@@ -68,6 +68,8 @@ class TestWorkbookValidation(unittest.TestCase):
             self.assertIn(fragment, message)
         return message
 
+
+class TestWorkbookValidation(WorkbookTestCase):
     def test_valid_workbook_loads(self):
         accounts = create_accounts(
             self.write({"Accounts": accounts_sheet(), "Bank A": balances_sheet()})
@@ -117,7 +119,7 @@ class TestWorkbookValidation(unittest.TestCase):
         balances.loc[1, "Date"] = "not a date"
         self.assert_error(
             {"Accounts": accounts_sheet(), "Bank A": balances},
-            "Sheet 'Bank A' has a blank or invalid date in Excel row(s) 3",
+            "Sheet 'Bank A' has a blank or invalid 'Date' in Excel row(s) 3",
         )
 
     def test_empty_trailing_rows_are_ignored(self):
@@ -130,6 +132,71 @@ class TestWorkbookValidation(unittest.TestCase):
             {"Holdings": holdings_sheet(Price=-1, ISIN=None)},
             "Sheet 'Holdings'", "'Price' must not be negative", "'ISIN' is blank",
             loader=create_holdings,
+        )
+
+
+class TestClosedAccounts(WorkbookTestCase):
+    """An account's balance is zero after it closes instead of carrying forward."""
+
+    def load(self, bank_a: pd.DataFrame):
+        # Bank B stays open until 10/01/2025, stretching the date range past
+        # Bank A's last entry on 02/01/2025.
+        bank_b = bank_a.iloc[[0]].assign(**{"Account id": "Bank B"})
+        for column in ("Status", "Closed date"):
+            if column in bank_b:
+                bank_b[column] = None
+        sheets = {
+            "Accounts": pd.concat([bank_a, bank_b], ignore_index=True),
+            "Bank A": balances_sheet(),
+            "Bank B": pd.DataFrame(
+                {"Date": ["01/01/2025", "10/01/2025"], "Balance": [5.0, 5.0], "Transaction number": [1, 2]}
+            ),
+        }
+        result = create_accounts(self.write(sheets))
+        result.calculate_balances()
+        return result
+
+    def test_closed_date_zeroes_balance_after_closing(self):
+        accounts = self.load(accounts_sheet(Status=None, **{"Closed date": "05/01/2025"}))
+        bank_a = accounts.merged_balances["Bank A"]
+        self.assertEqual(accounts["Bank A"].status, "Closed")
+        self.assertEqual(bank_a["2025-01-05"], 120.0)
+        self.assertEqual(bank_a["2025-01-06"], 0.0)
+        self.assertEqual(bank_a["2025-01-10"], 0.0)
+
+    def test_closed_status_without_date_closes_at_last_entry(self):
+        accounts = self.load(accounts_sheet(Status="Closed"))
+        bank_a = accounts.merged_balances["Bank A"]
+        self.assertEqual(accounts["Bank A"].closed_date, pd.Timestamp("2025-01-02"))
+        self.assertEqual(bank_a["2025-01-02"], 120.0)
+        self.assertEqual(bank_a["2025-01-03"], 0.0)
+
+    def test_open_account_still_carries_forward(self):
+        accounts = self.load(accounts_sheet())
+        self.assertEqual(accounts["Bank A"].status, "Active")
+        self.assertEqual(accounts.merged_balances["Bank A"]["2025-01-10"], 120.0)
+
+    def test_status_column_is_optional(self):
+        accounts = self.load(accounts_sheet().drop(columns="Status"))
+        self.assertEqual(accounts["Bank A"].status, "Active")
+
+    def test_active_with_closed_date_is_rejected(self):
+        self.assert_error(
+            {"Accounts": accounts_sheet(**{"Closed date": "05/01/2025"}), "Bank A": balances_sheet()},
+            "marked 'Active' that also have a 'Closed date' in Excel row(s) 2",
+        )
+
+    def test_entries_after_closed_date_are_rejected(self):
+        self.assert_error(
+            {"Accounts": accounts_sheet(Status="Closed", **{"Closed date": "01/01/2025"}),
+             "Bank A": balances_sheet()},
+            "Sheet 'Bank A' has balance entries after the account's closed date 01/01/2025 in Excel row(s) 3",
+        )
+
+    def test_invalid_closed_date_is_rejected(self):
+        self.assert_error(
+            {"Accounts": accounts_sheet(**{"Closed date": "someday"}), "Bank A": balances_sheet()},
+            "Sheet 'Accounts' has an invalid 'Closed date' in Excel row(s) 2",
         )
 
 

@@ -16,6 +16,7 @@ class Account:
     currency: Literal["MXN", "GBP"]
     status: Literal["Active", "Closed"]
     transactions: pd.DataFrame
+    closed_date: Optional[pd.Timestamp] = None
     balance: Optional[pd.DataFrame] = None
 
     def __post_init__(self):
@@ -29,9 +30,12 @@ class Account:
         full_dates = pd.date_range(start=start_date, end=end_date)
         balance = balance.set_index('date').reindex(full_dates)
         balance.index.name = 'date'
+        balance = balance.ffill()
+        if self.closed_date is not None:
+            # A closed account holds nothing after its closing date.
+            balance.loc[balance.index > self.closed_date, 'balance'] = 0.0
         self.balance = (
             balance
-            .ffill()
             .reset_index()
             .rename(columns={'balance': self.account_id}, inplace=False)
         )
