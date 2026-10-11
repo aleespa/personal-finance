@@ -1,0 +1,74 @@
+<section class="kpis" aria-label="Summary">
+  @if (summary.value(); as s) {
+    <mat-card appearance="outlined" class="kpi hero">
+      <span class="label">Total balance</span>
+      <span class="value">{{ gbp(s.total_balance) }}</span>
+      <span class="delta" [class.up]="s.delta_1y >= 0" [class.down]="s.delta_1y < 0">
+        <mat-icon>{{ s.delta_1y >= 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+        {{ signedGbp(s.delta_1y) }} vs a year ago
+      </span>
+    </mat-card>
+
+    @if (s.unrealized_gains !== null) {
+      <mat-card appearance="outlined" class="kpi">
+        <span class="label">Unrealized gains</span>
+        <span class="value delta-value" [class.up]="s.unrealized_gains >= 0" [class.down]="s.unrealized_gains < 0">
+          <mat-icon>{{ s.unrealized_gains >= 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+          {{ signedGbp(s.unrealized_gains) }}
+        </span>
+      </mat-card>
+    }
+
+    <mat-card appearance="outlined" class="kpi">
+      <span class="label">Total credit</span>
+      <span class="value">{{ gbp(s.total_credit) }}</span>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="kpi">
+      <span class="label">Accounts</span>
+      <span class="value">{{ s.active_accounts }}</span>
+      <span class="detail">active · {{ s.closed_accounts }} closed</span>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="kpi">
+      <span class="label">In debit / in credit</span>
+      <span class="value">{{ s.debit_accounts }} / {{ s.credit_accounts }}</span>
+      <span class="detail">accounts today</span>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="kpi">
+      <span class="label">Transactions</span>
+      <span class="value">{{ int(s.transactions) }}</span>
+    </mat-card>
+  } @else if (summaryError(); as message) {
+    <mat-card appearance="outlined" class="kpi" role="alert">{{ message }}</mat-card>
+  } @else {
+    <div class="kpi-loading"><mat-spinner diameter="32" /></div>
+  }
+</section>
+
+<section class="charts">
+  <app-chart-card class="treemap" title="Balance by bank" [figureResource]="treemap">
+    <mat-form-field controls class="compact-field" appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Month</mat-label>
+      <mat-select [(value)]="month">
+        @for (m of months(); track m) {
+          <mat-option [value]="m">{{ m | date: 'MMM y' }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </app-chart-card>
+
+  <app-chart-card class="monthly" title="Monthly change in total balance" [figureResource]="monthlyDiff">
+    <mat-form-field controls class="compact-field" appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Year</mat-label>
+      <mat-select [(value)]="year">
+        @for (y of years(); track y) {
+          <mat-option [value]="y">{{ y }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </app-chart-card>
+
+  <app-chart-card class="wide" title="Total balance (7-day average)" [figureResource]="totalLine" />
+</section>

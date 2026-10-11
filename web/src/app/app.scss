@@ -1,0 +1,50 @@
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 16px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.brand {
+  font: var(--mat-sys-title-large);
+}
+
+.tabs {
+  align-self: stretch;
+  border-bottom: none;
+  // Let the tab bar shrink so Material's tab pagination kicks in on narrow
+  // screens instead of the page scrolling sideways.
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.upload-narrow {
+  display: none;
+}
+
+.spacer {
+  flex: 1;
+}
+
+main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    gap: 4px;
+    padding: 0 8px;
+  }
+
+  .brand,
+  .upload-wide {
+    display: none;
+  }
+
+  .upload-narrow {
+    display: inline-flex;
+  }
+}

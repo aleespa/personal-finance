@@ -1,0 +1,74 @@
+.upload {
+  max-width: 640px;
+  margin: 48px auto;
+  padding: 0 16px;
+}
+
+h1 {
+  font: var(--mat-sys-headline-small);
+  margin: 0 0 8px;
+}
+
+.lede {
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 24px;
+}
+
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 24px;
+  border: 2px dashed var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-large);
+  text-align: center;
+  transition: background-color 150ms, border-color 150ms;
+
+  &.dragging {
+    border-color: var(--mat-sys-primary);
+    background: var(--mat-sys-primary-container);
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.drop-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: var(--mat-sys-primary);
+}
+
+.hint {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.error {
+  margin-top: 24px;
+  padding: 16px;
+  border-color: var(--mat-sys-error);
+
+  ul {
+    margin: 8px 0 0;
+    padding-left: 32px;
+  }
+
+  li + li {
+    margin-top: 4px;
+  }
+}
+
+.error-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--mat-sys-title-small);
+
+  mat-icon {
+    color: var(--mat-sys-error);
+  }
+}

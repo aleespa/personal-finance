@@ -1,0 +1,98 @@
+:host {
+  display: block;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+.hero {
+  grid-column: span 2;
+
+  .value {
+    font: var(--mat-sys-display-small);
+  }
+}
+
+.label {
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.value {
+  font: var(--mat-sys-headline-medium);
+  color: var(--mat-sys-on-surface);
+}
+
+.detail {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.delta,
+.delta-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &.up {
+    color: var(--pf-gain-text);
+  }
+
+  &.down {
+    color: var(--pf-loss-text);
+  }
+}
+
+.delta {
+  font: var(--mat-sys-body-medium);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.delta-value mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.kpi-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 16px;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 960px) {
+  .charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero {
+    grid-column: 1 / -1;
+  }
+}

@@ -1,0 +1,50 @@
+<section class="upload">
+  <h1>Upload your workbook</h1>
+  <p class="lede">
+    An Excel workbook with an <code>Accounts</code> sheet, one sheet per account and, optionally, a
+    <code>Holdings</code> sheet. Everything stays on this machine.
+  </p>
+
+  <div
+    class="drop-zone"
+    [class.dragging]="dragging()"
+    [class.busy]="uploading()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="dragging.set(false)"
+    (drop)="onDrop($event)"
+  >
+    @if (uploading()) {
+      <mat-spinner diameter="40" />
+      <p>Processing {{ fileName() }}…</p>
+      <p class="hint">The first upload with holdings fetches prices, which can take a while.</p>
+    } @else {
+      <mat-icon class="drop-icon">upload_file</mat-icon>
+      <p>Drag an <code>.xlsx</code> file here, or</p>
+      <button mat-flat-button type="button" (click)="fileInput.click()">Choose file</button>
+    }
+    <input
+      #fileInput
+      type="file"
+      accept=".xlsx"
+      hidden
+      (change)="onFileSelected($event)"
+      data-testid="file-input"
+    />
+  </div>
+
+  @if (error(); as error) {
+    <mat-card appearance="outlined" class="error" role="alert">
+      <div class="error-heading">
+        <mat-icon>error</mat-icon>
+        <span>{{ error.heading }}</span>
+      </div>
+      @if (error.problems.length) {
+        <ul>
+          @for (problem of error.problems; track $index) {
+            <li>{{ problem }}</li>
+          }
+        </ul>
+      }
+    </mat-card>
+  }
+</section>
