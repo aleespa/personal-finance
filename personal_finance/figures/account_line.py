@@ -53,7 +53,7 @@ def plot_line_chart_account_plotly(accounts, account_id: str):
     )
 
     # Add zero line
-    fig.add_hline(y=0, line_dash='dash', line_color='black', opacity=0.4)
+    fig.add_hline(y=0, line_dash='dash', line_color='#888', opacity=0.4)
 
     # Layout
     fig.update_layout(

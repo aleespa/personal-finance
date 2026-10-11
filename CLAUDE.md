@@ -32,10 +32,10 @@ All column headers are normalized to snake_case via `normalize_column_names` bef
 
 ### Data flow
 
-1. `data.create_accounts(path)` builds an `AccountList` (a `UserDict` of `account_id -> Account`). Each `Account` dataclass re-validates its `transactions` DataFrame against `BALANCES_SCHEMA` in `__post_init__`, which also covers the synthetic Holdings account.
+1. `data.read_workbook(source)` parses every sheet once; `create_accounts` and `create_holdings` accept either that dict or a path/file. `create_accounts` builds an `AccountList` (a `UserDict` of `account_id -> Account`). Each `Account` dataclass re-validates its `transactions` DataFrame against `BALANCES_SCHEMA` in `__post_init__`, which also covers the synthetic Holdings account.
 2. If a `Holdings` sheet exists, `holdings.get_historical_holdings` turns it into a synthetic `Account` with id `"Holdings"` (type `Investment`, GBP). Its daily `transactions` frame has `balance` = invested cost basis (average-cost method), `valuation` = market value, plus per-asset `<name>_valuation`, `<name>_invested` and unrealized-P&L columns.
 3. `AccountList.calculate_balances()` computes a daily forward-filled balance per account (last transaction of each day = the one with the highest `transaction_number`) and merges them into `merged_balances`: a daily `DatetimeIndex` frame with one column per account plus `total`.
-4. `dashboard/app.py` stores the `AccountList` in `st.session_state.accounts` and renders sections from `dashboard/fragments.py`, each an `@st.fragment` that calls a Plotly builder in `personal_finance/figures/`. All charts are Plotly; there is no matplotlib code.
+4. `dashboard/app.py` stores the `AccountList` in `st.session_state.accounts` and renders sections from `dashboard/fragments.py`, each an `@st.fragment` that calls a Plotly builder in `personal_finance/figures/`. Headline KPIs and the list of still-held tickers come from `personal_finance/summary.py`. All charts are Plotly; there is no matplotlib code.
 
 ### Price fetching and side-effect files
 
@@ -43,7 +43,7 @@ All column headers are normalized to snake_case via `normalize_column_names` bef
 - Primary source is yfinance using the `yf_name` column; prices are converted to GBP (GBp is divided by 100, other currencies use `<CCY>GBP=X` FX rates).
 - Fallback is EODHD by ISIN, which needs `EODHD_API_KEY` in a `.env` file.
 - Remaining gaps fall back to the transaction price (cost basis).
-- Results, including NaN markers for dates that could not be fetched, are cached in `price_cache.csv` in the current working directory. Delete rows from it to force a refetch. The function also writes `holdings.csv` to the CWD as a debug dump. Both files are untracked.
+- Results, including NaN markers for dates that could not be fetched, are cached in `price_cache.csv` in the repo root (`personal_finance.paths.PROJECT_ROOT`). Delete rows from it to force a refetch. When the `PF_DEBUG` environment variable is set, the function also writes `holdings.csv` to the repo root as a debug dump. Both files are untracked.
 
 All monetary values are effectively treated as GBP; there is no FX conversion for MXN accounts.
 
@@ -53,4 +53,4 @@ All monetary values are effectively treated as GBP; there is no FX conversion fo
 
 ### Styling
 
-`bank_colors.json` maps bank names to brand hex colors; `figures/balance_pie_chart.py` reads it from the CWD as an override for chart colors.
+`bank_colors.json` maps bank names to brand hex colors; `figures/balance_pie_chart.py` reads it from the repo root as an override for chart colors.

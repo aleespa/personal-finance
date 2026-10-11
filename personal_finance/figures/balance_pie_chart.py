@@ -4,6 +4,8 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 
+from personal_finance.paths import PROJECT_ROOT
+
 def _hsl_to_hex(h: float, s: float, l: float) -> str:
     """Convert HSL (0-1 range) to hex color string."""
     r, g, b = colorsys.hls_to_rgb(h, l, s)
@@ -20,7 +22,7 @@ def _generate_bank_palette(banks: list) -> dict:
     """Assign colors to banks, using bank_colors.json as override."""
     palette = {}
     
-    config_path = "bank_colors.json"
+    config_path = PROJECT_ROOT / "bank_colors.json"
     config = {}
     if os.path.exists(config_path):
         try:

@@ -104,6 +104,6 @@ uv run python debug.py --workbook data/demo_data.xlsx   # print each pipeline st
 
 ## Notes
 
-* Fetched prices are cached in `price_cache.csv` in the working directory. Delete it, or rows from it, to force a refetch.
-* A debug dump of computed holdings is written to `holdings.csv` in the working directory.
+* Fetched prices are cached in `price_cache.csv` in the project root. Delete it, or rows from it, to force a refetch.
+* Set the `PF_DEBUG` environment variable to write a debug dump of computed holdings to `holdings.csv` in the project root.
 * MXN balances are not converted to GBP. Totals add all accounts as-is.

@@ -8,6 +8,8 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+from personal_finance.paths import PROJECT_ROOT
+
 logger = logging.getLogger(__name__)
 
 def _calculate_invested(group: pd.DataFrame) -> pd.Series:
@@ -162,7 +164,7 @@ def get_historical_holdings(
     table["isin"] = table["isin"].astype(str)
     isin_names = table.groupby("isin")["full_name"].first().to_dict()
 
-    cache_path = "price_cache.csv"
+    cache_path = PROJECT_ROOT / "price_cache.csv"
     if os.path.exists(cache_path):
         cache_df = pd.read_csv(cache_path, parse_dates=["date"])
     else:
@@ -293,7 +295,8 @@ def get_historical_holdings(
         .rename_axis("date")
         .reset_index()
     )
-    output.to_csv("holdings.csv")
+    if os.environ.get("PF_DEBUG"):
+        output.to_csv(PROJECT_ROOT / "holdings.csv")
 
     return output
 
