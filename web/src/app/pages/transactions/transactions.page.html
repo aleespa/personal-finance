@@ -1,0 +1,42 @@
+<div class="filters">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="range">
+    <mat-label>Date range</mat-label>
+    <mat-date-range-input [rangePicker]="picker" [min]="minDate()" [max]="maxDate()">
+      <input matStartDate placeholder="Start" [value]="start()" (dateChange)="start.set($event.value)" />
+      <input matEndDate placeholder="End" [value]="end()" (dateChange)="end.set($event.value)" />
+    </mat-date-range-input>
+    <mat-datepicker-toggle matIconSuffix [for]="picker" />
+    <mat-date-range-picker #picker />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="accounts">
+    <mat-label>Accounts</mat-label>
+    <mat-select multiple [(value)]="selected">
+      @for (account of accounts(); track account.id) {
+        <mat-option [value]="account.id">
+          {{ account.id }}
+          @if (account.status === 'Closed') {
+            <span class="closed">(closed)</span>
+          }
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+<div class="grid-wrap">
+  <mat-progress-bar [class.hidden]="!loading()" mode="indeterminate" />
+  @if (error(); as message) {
+    <p class="message" role="alert"><mat-icon>error</mat-icon>{{ message }}</p>
+  } @else if (noAccounts()) {
+    <p class="message">Select at least one account.</p>
+  } @else {
+    <ag-grid-angular
+      class="grid"
+      [theme]="gridTheme()"
+      [rowData]="rows()"
+      [columnDefs]="columns()"
+      [defaultColDef]="defaultColDef"
+    />
+  }
+</div>

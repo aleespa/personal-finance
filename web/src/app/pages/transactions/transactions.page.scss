@@ -1,0 +1,62 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.range {
+  width: 280px;
+}
+
+.accounts {
+  flex: 1;
+  min-width: 220px;
+  max-width: 560px;
+}
+
+.closed {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.grid-wrap {
+  position: relative;
+}
+
+mat-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+
+  &.hidden {
+    visibility: hidden;
+  }
+}
+
+.grid {
+  display: block;
+  height: max(400px, calc(100vh - 220px));
+}
+
+// Amounts line up digit for digit.
+:host ::ng-deep .amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    color: var(--mat-sys-error);
+  }
+}
