@@ -74,7 +74,8 @@ network work runs in FastAPI's thread pool.
   `closed_accounts`, `debit_accounts`, `credit_accounts`, `transactions`,
   `unrealized_gains` (nullable).
 - The store holds only the most recent workbook. Any other `id` returns `404`; the UI
-  then returns to the upload screen.
+  then returns to the upload screen. Because of that, `404` is reserved for unknown
+  workbooks: holdings charts on a workbook with no (current) holdings return `409`.
 - Figure JSON is produced by one helper that sets `template="none"` before
   `to_json()`, so the frontend owns the theme. Builders keep their template for
   Streamlit until it is removed.
@@ -122,6 +123,8 @@ network work runs in FastAPI's thread pool.
 
 - Workbook validation: `422`, message shown on the upload page.
 - Unknown workbook id: `404`, UI navigates to `/upload` with a snackbar.
+- Holdings chart on a workbook with no holdings, or none still held: `409`, message in
+  the chart card.
 - Price download failure for analysis charts: `503`, chart card shows
   "Could not load prices"; the rest of the page still works.
 - Unexpected errors: `500`, chart card shows a generic error.

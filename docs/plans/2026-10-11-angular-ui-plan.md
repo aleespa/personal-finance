@@ -66,8 +66,8 @@ Streamlit must keep working until Phase 5.
 ## Phase 2 — FastAPI backend
 
 ### Task 2.1 — Dependencies and packaging
-- `uv add fastapi uvicorn python-multipart` (plus `httpx` as a dev dependency for
-  `TestClient`).
+- `uv add fastapi uvicorn python-multipart` (plus `httpx2` as a dev dependency for
+  `TestClient`; Starlette 1.7 deprecates `httpx`).
 - `pyproject.toml`: add a `[build-system]` (setuptools), set
   `include = ["personal_finance*"]` so subpackages are installed, and
   `[project.scripts] personal-finance = "personal_finance.api.main:main"`.
@@ -105,8 +105,8 @@ Streamlit must keep working until Phase 5.
 - Helper `figure_response(fig)`: `fig.update_layout(template="none")`, return
   `Response(fig.to_json(), media_type="application/json")`.
 - Routes per the spec, each calling the existing builder. Validate params (unknown
-  year/account/month → 422). `holdings-*` routes return 404 when the workbook has no
-  holdings. Analysis routes return 503 when the builder returns `None`.
+  year/account/month → 422). `holdings-*` routes return 409 when the workbook has no
+  holdings (404 is reserved for unknown workbooks). Analysis routes return 503 when the builder returns `None`.
 - Tests: every chart route returns JSON with `data` and `layout` for the demo
   workbook; bad params → 422; stale id → 404. Patch the yfinance download in the
   analysis-chart tests so they don't need the network.
