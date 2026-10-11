@@ -62,7 +62,6 @@ def plot_line_chart_account_plotly(accounts, account_id: str):
         title=f"{account_id} - Rolling 7-day Average Balance",
         xaxis_title="Date",
         yaxis_title="Balance (£)",
-        template="plotly_white",
         height=500,
     )
 

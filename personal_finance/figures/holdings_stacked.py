@@ -41,7 +41,6 @@ def plot_holdings_stacked(accounts, start_date, end_date):
         title="Holdings Unrealized Gain/Loss Evolution by Ticker",
         xaxis=dict(title="Date"),
         yaxis=dict(title="Unrealized P&L (£)", tickprefix="£"),
-        template="plotly_white",
         height=600,
         legend=dict(title="Ticker", x=1.05, y=1),
     )

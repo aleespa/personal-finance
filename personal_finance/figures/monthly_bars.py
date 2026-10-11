@@ -30,7 +30,6 @@ def plot_monthly_diff_plotly(year: int, df: pd.DataFrame):
         title=f"Monthly Balance Difference — {year}",
         xaxis_title="Month",
         yaxis_title="Balance Difference (£)",
-        template="plotly_white",
         height=500,
     )
 

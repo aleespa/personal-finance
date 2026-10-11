@@ -163,7 +163,6 @@ def plot_account_balance_pie(accounts, selected_date):
 
     fig.update_layout(
         title=f"Account Balance Distribution — {date.strftime('%b %Y')}",
-        template="plotly_white",
         height=500,
         margin=dict(t=50, l=10, r=10, b=10)
     )

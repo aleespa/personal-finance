@@ -83,7 +83,6 @@ def plot_stacked_ts_balance_by_bank(accounts, start_date, end_date):
         barmode="relative",  # diverging stacked bars
         xaxis=dict(title="Month", tickformat="%b\n%Y"),
         yaxis=dict(title="Balance (£)", tickprefix="£"),
-        template="plotly_white",
         height=600,
         legend=dict(title="Account (Bank)", x=1.05, y=1),
     )

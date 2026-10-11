@@ -108,7 +108,6 @@ def plot_tickers_evolution(tickers, names_dict):
         xaxis_title="Date",
         yaxis_title="Normalized Price (Start = 100)",
         height=500,
-        template="plotly_white",
         legend=dict(
             orientation="h",
             yanchor="bottom",
