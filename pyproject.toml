@@ -16,6 +16,21 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "pandera>=0.30.1",
     "python-calamine>=0.6.2",
+    "fastapi>=0.143.0",
+    "uvicorn>=0.54.0",
+    "python-multipart>=0.0.32",
 ]
+[project.scripts]
+personal-finance = "personal_finance.api.main:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools.packages.find]
-include = ["personal_finance"]
+include = ["personal_finance*"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+]
