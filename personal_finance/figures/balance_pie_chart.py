@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 
+from personal_finance.figures.colors import NEGATIVE, POSITIVE
 from personal_finance.paths import PROJECT_ROOT
 
 def _hsl_to_hex(h: float, s: float, l: float) -> str:
@@ -131,7 +132,7 @@ def plot_account_balance_pie(accounts, selected_date):
                     holdings_sub_labels.append(ticker)
                     holdings_sub_parents.append("Holdings")
                     holdings_sub_values.append(inv_val)
-                    holdings_sub_colors.append('#2ca02c' if pnl >= 0 else '#d62728')
+                    holdings_sub_colors.append(POSITIVE if pnl >= 0 else NEGATIVE)
 
         # Use the sum of added tickers for consistency
         current_holdings_sum = sum(holdings_sub_values)

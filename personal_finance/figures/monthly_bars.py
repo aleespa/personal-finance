@@ -1,6 +1,8 @@
 import pandas as pd
 import plotly.graph_objects as go
 
+from personal_finance.figures.colors import NEGATIVE, POSITIVE
+
 
 def plot_monthly_diff_plotly(year: int, df: pd.DataFrame):
     y = df["monthly_diff"].to_numpy()
@@ -11,7 +13,7 @@ def plot_monthly_diff_plotly(year: int, df: pd.DataFrame):
         for mo in months
     ]
 
-    colors = ["green" if v >= 0 else "red" for v in y]
+    colors = [POSITIVE if v >= 0 else NEGATIVE for v in y]
 
     fig = go.Figure(
         data=[

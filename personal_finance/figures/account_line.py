@@ -1,6 +1,8 @@
 import plotly.graph_objects as go
 import pandas as pd
 
+from personal_finance.figures.colors import NEGATIVE, POSITIVE
+
 def plot_line_chart_account_plotly(accounts, account_id: str):
     """
     Create an interactive Plotly line chart for a single account.
@@ -35,7 +37,7 @@ def plot_line_chart_account_plotly(accounts, account_id: str):
             y=y_pos,
             fill='tozeroy',
             mode='lines',
-            line=dict(color='green'),
+            line=dict(color=POSITIVE),
             name='Positive'
         )
     )
@@ -47,7 +49,7 @@ def plot_line_chart_account_plotly(accounts, account_id: str):
             y=y_neg,
             fill='tozeroy',
             mode='lines',
-            line=dict(color='red'),
+            line=dict(color=NEGATIVE),
             name='Negative'
         )
     )
